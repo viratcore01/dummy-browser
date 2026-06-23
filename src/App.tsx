@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Maximize, Minimize } from 'lucide-react';
-import { BrowserProvider, useActiveHost } from './browser/store';
+import { BrowserProvider } from './browser/store';
+import { useActiveHost } from './browser/useBrowser';
 import SystemBar, { NotificationStack } from './browser/SystemBar';
 import BrowserFrame from './browser/BrowserFrame';
 import CrewControls from './browser/CrewControls';

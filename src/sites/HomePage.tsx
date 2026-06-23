@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Search, Lock, Globe } from 'lucide-react';
-import { useBrowser } from '../browser/store';
+import { useBrowser } from '../browser/useBrowser';
 
 const QUICK = [
   { label: 'Veilpedia', url: 'wiki.local/neil', hint: 'wiki.local/neil' },

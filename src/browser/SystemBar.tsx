@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Battery, Wifi, Volume2 } from 'lucide-react';
-import { useBrowser } from './store';
+import { useBrowser } from './useBrowser';
 
 function useClock() {
   const [now, setNow] = useState(() => new Date());

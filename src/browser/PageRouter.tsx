@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { useActiveHost } from './store';
+import { useActiveHost } from './useBrowser';
 import HomePage from '../sites/HomePage';
 import ErrorPage from './ErrorPage';
 

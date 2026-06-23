@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Sparkles, Send, Trash2, Square, MoreVertical, Edit2, Download, Clock } from 'lucide-react';
-import { useBrowser, useCrew } from '../browser/store';
+import { useBrowser, useCrew } from '../browser/useBrowser';
 import type { ChatMessage } from '../browser/types';
 
 const SCRIPTED_CONVERSATION: { role: 'user' | 'ai'; text: string }[] = [

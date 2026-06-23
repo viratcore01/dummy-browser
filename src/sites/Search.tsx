@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Search as SearchIcon, ArrowRight, ExternalLink } from 'lucide-react';
-import { useActiveEntry, useBrowser } from '../browser/store';
+import { useActiveEntry, useBrowser } from '../browser/useBrowser';
 
 interface Result {
   title: string;

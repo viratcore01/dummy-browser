@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useBrowser } from './store';
+import { useBrowser } from './useBrowser';
 
 /**
  * Hidden keyboard controls for the crew.

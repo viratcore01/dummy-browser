@@ -1,14 +1,13 @@
 import {
   createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useRef,
   useState,
   type ReactNode,
 } from 'react';
-import type { HistoryEntry, Tab, Host, ParsedUrl } from './types';
+import type { HistoryEntry, Tab, ParsedUrl } from './types';
 import { HOST_FAVICONS, HOST_TITLES, parseUrl } from './urls';
 
 const STORAGE_KEY = 'veil.browser.v1';
@@ -55,7 +54,7 @@ export interface NavigateOpts {
   titleOverride?: string;
 }
 
-interface BrowserContextValue {
+export interface BrowserContextValue {
   tabs: Tab[];
   activeId: string;
   active: Tab;
@@ -69,12 +68,11 @@ interface BrowserContextValue {
   canBack: boolean;
   canForward: boolean;
   setLoading: (b: boolean) => void;
-  // crew control broadcast
   broadcast: (channel: string, payload?: unknown) => void;
   subscribe: (channel: string, cb: (p: unknown) => void) => () => void;
 }
 
-const Ctx = createContext<BrowserContextValue | null>(null);
+export const Ctx = createContext<BrowserContextValue | null>(null);
 
 export function BrowserProvider({ children }: { children: ReactNode }) {
   const [{ tabs, activeId }, setState] = useState<SavedState>(load);
@@ -224,27 +222,4 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
-}
-
-export function useBrowser() {
-  const v = useContext(Ctx);
-  if (!v) throw new Error('useBrowser must be used within BrowserProvider');
-  return v;
-}
-
-export function useCrew(channel: string, cb: (p: unknown) => void) {
-  const { subscribe } = useBrowser();
-  const ref = useRef(cb);
-  ref.current = cb;
-  useEffect(() => subscribe(channel, (p) => ref.current(p)), [channel, subscribe]);
-}
-
-export function useActiveEntry() {
-  const { active } = useBrowser();
-  return active.history[active.cursor] ?? active.history[0];
-}
-
-export function useActiveHost(): Host {
-  const e = useActiveEntry();
-  return e?.host ?? 'home';
 }

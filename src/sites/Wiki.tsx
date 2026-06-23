@@ -12,7 +12,7 @@ import {
   RotateCcw,
   Terminal,
 } from 'lucide-react';
-import { useCrew } from '../browser/store';
+import { useCrew } from '../browser/useBrowser';
 
 interface Section {
   id: string;
@@ -173,13 +173,13 @@ export default function Wiki() {
         addUpdate(1, 'His girlfriend broke up with him after discovering that he cheated on her with her best friend.', 'later');
         break;
       case 2:
-        addUpdate(2, 'Reports later connected him to steroid abuse during his football career.', 'football');
+        addUpdate(2, 'After the breakup, reports surfaced connecting him to steroid abuse during his football career.', 'football');
         break;
       case 3:
         addUpdate(3, "Neil's parents died due to drug overdose.", 'family');
         break;
       case 4:
-        addUpdate(4, 'His girlfriend was found dead in the woods.', 'personal');
+        addUpdate(4, 'Following the family tragedy, his girlfriend was found dead in the woods.', 'personal');
         break;
       case 5:
         addUpdate(5, 'Neil died friendless and alone.', 'later');
@@ -225,6 +225,8 @@ export default function Wiki() {
       setTimeout(() => fireTrigger(1), 600);
     } else if (triggerStage === 1) {
       setTimeout(() => fireTrigger(2), 600);
+    } else if (triggerStage === 3) {
+      setTimeout(() => fireTrigger(4), 600);
     } else if (triggerStage === 4) {
       setTimeout(() => fireTrigger(5), 600);
     } else if (triggerStage === 5) {

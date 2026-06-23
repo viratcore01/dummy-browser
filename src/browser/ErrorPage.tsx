@@ -1,5 +1,5 @@
 import { Compass, AlertTriangle } from 'lucide-react';
-import { useActiveEntry, useBrowser } from './store';
+import { useActiveEntry, useBrowser } from './useBrowser';
 
 export default function ErrorPage() {
   const entry = useActiveEntry();

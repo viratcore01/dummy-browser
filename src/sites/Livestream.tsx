@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pause, Play, Maximize, Volume2, VolumeX, Circle, Users, Send } from 'lucide-react';
-import { useCrew } from '../browser/store';
+import { useCrew } from '../browser/useBrowser';
 
 interface ChatLine {
   id: number;

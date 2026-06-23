@@ -12,7 +12,7 @@ import {
   History,
   Settings2,
 } from 'lucide-react';
-import { useBrowser, useActiveEntry } from './store';
+import { useBrowser, useActiveEntry } from './useBrowser';
 import Favicon from './Favicon';
 import PageRouter from './PageRouter';
 import LoadingOverlay from './LoadingOverlay';
