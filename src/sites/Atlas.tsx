@@ -89,9 +89,7 @@ export default function Atlas() {
   const { navigate } = useBrowser();
   const scrollRef = useRef<HTMLDivElement>(null);
   const streamTimer = useRef<ReturnType<typeof setInterval> | null>(null);
-  let scriptIdx = messages.length > 0 ? SCRIPTED_CONVERSATION.findIndex((_, i) => i >= 0 && SCRIPTED_CONVERSATION.slice(0, i + 1).filter((m) => m.role === 'ai').length === messages.filter((m) => m.role === 'ai').length) : 0;
-  if (scriptIdx === -1) scriptIdx = SCRIPTED_CONVERSATION.length;
-  const [scriptIndex, setScriptIndex] = useState(() => scriptIdx);
+  const scriptIndexRef = useRef(0);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -137,24 +135,26 @@ export default function Atlas() {
   };
 
   const sendUserLine = () => {
-    while (scriptIndex < SCRIPTED_CONVERSATION.length && SCRIPTED_CONVERSATION[scriptIndex].role !== 'user') {
-      setScriptIndex((i) => i + 1);
+    if (thinking || streamed) return;
+    while (scriptIndexRef.current < SCRIPTED_CONVERSATION.length && SCRIPTED_CONVERSATION[scriptIndexRef.current].role !== 'user') {
+      scriptIndexRef.current++;
     }
-    if (scriptIndex >= SCRIPTED_CONVERSATION.length) return;
-    const line = SCRIPTED_CONVERSATION[scriptIndex];
-    setScriptIndex((i) => i + 1);
+    if (scriptIndexRef.current >= SCRIPTED_CONVERSATION.length) return;
+    const line = SCRIPTED_CONVERSATION[scriptIndexRef.current];
+    scriptIndexRef.current++;
     const msg: ChatMessage = { id: String(Date.now()), role: 'user', text: line.text, ts: Date.now() };
     setMessages((m) => [...m, msg]);
   };
 
   const sendAiLine = () => {
-    setThinking(true);
-    while (scriptIndex < SCRIPTED_CONVERSATION.length && SCRIPTED_CONVERSATION[scriptIndex].role !== 'ai') {
-      setScriptIndex((i) => i + 1);
+    if (thinking || streamed) return;
+    while (scriptIndexRef.current < SCRIPTED_CONVERSATION.length && SCRIPTED_CONVERSATION[scriptIndexRef.current].role !== 'ai') {
+      scriptIndexRef.current++;
     }
-    if (scriptIndex >= SCRIPTED_CONVERSATION.length) return;
-    const line = SCRIPTED_CONVERSATION[scriptIndex];
-    setScriptIndex((i) => i + 1);
+    if (scriptIndexRef.current >= SCRIPTED_CONVERSATION.length) return;
+    const line = SCRIPTED_CONVERSATION[scriptIndexRef.current];
+    scriptIndexRef.current++;
+    setThinking(true);
     const delay = 500 + Math.random() * 1200;
     setTimeout(() => {
       setThinking(false);
@@ -185,7 +185,7 @@ export default function Atlas() {
     setMessages([]);
     setThinking(false);
     setStreamed('');
-    setScriptIndex(0);
+    scriptIndexRef.current = 0;
   };
 
   useEffect(() => {
