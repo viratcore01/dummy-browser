@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import {
   BookOpen,
   History,
@@ -8,6 +8,9 @@ import {
   ExternalLink,
   Clock,
   ShieldAlert,
+  Play,
+  RotateCcw,
+  Terminal,
 } from 'lucide-react';
 import { useCrew } from '../browser/store';
 
@@ -18,12 +21,15 @@ interface Section {
   open: boolean;
 }
 
-interface EditRecord {
-  user: string;
+interface UpdateRecord {
+  id: string;
+  trigger: number;
+  text: string;
   time: string;
-  summary: string;
-  bytes: number;
+  director: string;
 }
+
+const STORAGE_KEY = 'veil.wiki.neil.v2';
 
 const INITIAL_SECTIONS: Section[] = [
   {
@@ -68,22 +74,6 @@ const INITIAL_SECTIONS: Section[] = [
   },
 ];
 
-const INITIAL_HISTORY: EditRecord[] = [
-  { user: 'atlas_scraper', time: '14:32:08', summary: 'Added football career details', bytes: 412 },
-  { user: 'siit_alum', time: '14:28:51', summary: 'Added relationship status', bytes: 156 },
-  { user: 'delhi_wiki', time: '14:15:33', summary: 'Created biographical article', bytes: 1240 },
-  { user: 'anonymous', time: '14:10:02', summary: 'Added early life section', bytes: 890 },
-  { user: 'corridor_archivist', time: '01:50:14', summary: 'Created redirect to old article', bytes: 120 },
-];
-
-// Horror payload: new paragraphs that appear live
-const HORROR_PARAS: string[] = [
-  'The confessions page was not anonymous. IP logs recovered by an independent researcher identify the administrator.',
-  'A deleted tweet from 2024 shows Sharma acknowledging the page\'s impact on mental health.',
-  'The engineering department has not commented on whether Sharma\'s behavior will affect his enrollment.',
-  'Three former classmates have since confirmed that the confessions page operated for 18 months before deletion.',
-];
-
 const REFS = [
   { n: 1, text: 'Sigma Public School yearbook, 2023. Page 47.', url: 'archive.local/edu/sps' },
   { n: 2, text: 'SIIT Delhi student records, Department of Engineering.', url: 'archive.local/edu/siit' },
@@ -92,57 +82,246 @@ const REFS = [
   { n: 5, text: 'Deleted social media archive, retrieved 2026.', url: 'archive.local/soc/neil' },
 ];
 
+const INITIAL_HISTORY: UpdateRecord[] = [
+  { id: '1', trigger: 0, text: 'Created biographical article', time: '14:15:33', director: 'delhi_wiki' },
+  { id: '2', trigger: 0, text: 'Added early life section', time: '14:10:02', director: 'anonymous' },
+];
+
+function loadState(): {
+  sections: Section[];
+  history: UpdateRecord[];
+  triggerStage: number;
+} | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && Array.isArray(parsed.sections)) return parsed;
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+function saveState(sections: Section[], history: UpdateRecord[], triggerStage: number) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ sections, history, triggerStage }));
+  } catch {
+    /* ignore */
+  }
+}
+
 export default function Wiki() {
-  const [sections, setSections] = useState<Section[]>(INITIAL_SECTIONS);
-  const [history] = useState<EditRecord[]>(INITIAL_HISTORY);
+  const loaded = loadState();
+  const [sections, setSections] = useState<Section[]>(loaded?.sections ?? INITIAL_SECTIONS);
+  const [history, setHistory] = useState<UpdateRecord[]>(loaded?.history ?? INITIAL_HISTORY);
+  const [triggerStage, setTriggerStage] = useState(loaded?.triggerStage ?? 0);
   const [tab, setTab] = useState<'article' | 'history'>('article');
-  const [newPara, setNewPara] = useState<{ id: number; text: string } | null>(null);
   const [editCount, setEditCount] = useState(5);
   const [activeRef, setActiveRef] = useState<number | null>(null);
+  const [showControlPanel, setShowControlPanel] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [infiniteLoading, setInfiniteLoading] = useState(false);
+  const [editingSection, setEditingSection] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState('');
 
-  // hidden live update on article load — appears after a delay
   useEffect(() => {
-    let cancelled = false;
-    let i = 0;
-    const schedule = () => {
-      const delay = 9000 + Math.random() * 6000;
-      setTimeout(() => {
-        if (cancelled) return;
-        if (i < HORROR_PARAS.length) {
-          setNewPara({ id: Date.now(), text: HORROR_PARAS[i] });
-          setEditCount((c) => c + 1);
-          i++;
-          schedule();
-        }
-      }, delay);
+    saveState(sections, history, triggerStage);
+  }, [sections, history, triggerStage]);
+
+  const lastEdit = `${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}`;
+
+  const addUpdate = useCallback((trigger: number, text: string, sectionId?: string, addToSection: boolean = true) => {
+    const now = new Date();
+    const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+    const record: UpdateRecord = {
+      id: String(Date.now()),
+      trigger,
+      text,
+      time,
+      director: 'director',
     };
-    schedule();
-    return () => {
-      cancelled = true;
-    };
+    setHistory((h) => [...h, record]);
+    setEditCount((c) => c + 1);
+
+    if (addToSection && sectionId) {
+      setSections((secs) =>
+        secs.map((sec) => {
+          if (sec.id === sectionId) {
+            return {
+              ...sec,
+              body: [...sec.body, text],
+              open: true,
+            };
+          }
+          return sec;
+        })
+      );
+    }
+
+    if (trigger > 0) {
+      setIsRefreshing(true);
+      setTimeout(() => setIsRefreshing(false), 600);
+    }
   }, []);
 
-  // crew control: 2 → add a horror paragraph immediately
-  useCrew('wiki:add', () => {
-    const i = Math.floor(Math.random() * HORROR_PARAS.length);
-    setNewPara({ id: Date.now(), text: HORROR_PARAS[i] });
+  const fireTrigger = useCallback((num: number) => {
+    if (num <= triggerStage) return;
+    switch (num) {
+      case 1:
+        addUpdate(1, 'His girlfriend broke up with him after discovering that he cheated on her with her best friend.', 'later');
+        break;
+      case 2:
+        addUpdate(2, 'Reports later connected him to steroid abuse during his football career.', 'football');
+        break;
+      case 3:
+        addUpdate(3, "Neil's parents died due to drug overdose.", 'family');
+        break;
+      case 4:
+        addUpdate(4, 'His girlfriend was found dead in the woods.', 'personal');
+        break;
+      case 5:
+        addUpdate(5, 'Neil died friendless and alone.', 'later');
+        break;
+      case 6:
+        addUpdate(6, '', 'later', false);
+        setInfiniteLoading(true);
+        break;
+    }
+    setTriggerStage(num);
+  }, [triggerStage, addUpdate]);
+
+  const nextTrigger = () => {
+    const next = triggerStage + 1;
+    if (next <= 6) fireTrigger(next);
+  };
+
+  const resetTriggers = () => {
+    setTriggerStage(0);
+    setSections(INITIAL_SECTIONS);
+    setHistory(INITIAL_HISTORY);
+    setInfiniteLoading(false);
+    setIsRefreshing(false);
+    setEditCount(5);
+  };
+
+  const handleUserEdit = (sectionId: string, newBody: string[]) => {
+    setSections((secs) => secs.map((s) => (s.id === sectionId ? { ...s, body: newBody } : s)));
+    const now = new Date();
+    const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const record: UpdateRecord = {
+      id: String(Date.now()),
+      trigger: 0,
+      text: `Edited ${sectionId} section`,
+      time,
+      director: 'neil',
+    };
+    setHistory((h) => [...h, record]);
     setEditCount((c) => c + 1);
-  });
-  useCrew('wiki:open', () => {
-    /* navigation handled elsewhere */
+    setEditingSection(null);
+
+    if (triggerStage === 0) {
+      setTimeout(() => fireTrigger(1), 600);
+    } else if (triggerStage === 1) {
+      setTimeout(() => fireTrigger(2), 600);
+    } else if (triggerStage === 4) {
+      setTimeout(() => fireTrigger(5), 600);
+    } else if (triggerStage === 5) {
+      setTimeout(() => fireTrigger(6), 600);
+    }
+  };
+
+  const startEdit = (sectionId: string) => {
+    const sec = sections.find((s) => s.id === sectionId);
+    if (sec) {
+      setEditingSection(sectionId);
+      setEditDraft(sec.body.join('\n\n'));
+    }
+  };
+
+  const saveEdit = () => {
+    if (!editingSection) return;
+    const newBody = editDraft.split('\n\n').filter((p) => p.trim());
+    handleUserEdit(editingSection, newBody);
+  };
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === '`') {
+        e.preventDefault();
+        setShowControlPanel((p) => !p);
+      }
+      if (e.key === 'F2') {
+        e.preventDefault();
+        const next = triggerStage + 1;
+        if (next <= 6) fireTrigger(next);
+      }
+      if (e.ctrlKey && e.shiftKey && e.key === 'W') {
+        e.preventDefault();
+        setShowControlPanel(true);
+      }
+      if (e.key === 'Escape') {
+        setShowControlPanel(false);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [triggerStage, fireTrigger]);
+
+  useCrew('wiki:trigger', (p) => {
+    const t = (p as number) || 1;
+    fireTrigger(t);
   });
 
   const toggle = (id: string) =>
     setSections((s) => s.map((sec) => (sec.id === id ? { ...sec, open: !sec.open } : sec)));
 
-  const lastEdit = useMemo(() => {
-    const now = new Date();
-    return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editCount]);
-
   return (
-    <div className="min-h-full bg-ink-950 text-ink-100">
+    <div className={`min-h-full bg-ink-950 text-ink-100 ${isRefreshing ? 'transition-opacity duration-300' : ''}`}>
+      <style>{`@keyframes revealText{from{opacity:0;transform:translateY(4px);filter:blur(2px)}to{opacity:1;transform:translateY(0);filter:blur(0)}}`}</style>
+
+      {showControlPanel && (
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-ink-900 border border-ink-700 rounded-xl shadow-2xl w-full max-w-md p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Terminal size={16} className="text-accent" />
+                <h2 className="text-sm font-mono text-ink-200 uppercase tracking-wider">Director Control Panel</h2>
+              </div>
+              <button onClick={() => setShowControlPanel(false)} className="text-ink-500 hover:text-ink-200 text-xs">ESC</button>
+            </div>
+            <div className="text-[11px] text-ink-500 mb-4 font-mono">Trigger Stage: {triggerStage} / 6</div>
+            <div className="space-y-2">
+              {[1, 2, 3, 4, 5, 6].map((n) => (
+                <button
+                  key={n}
+                  onClick={() => fireTrigger(n)}
+                  disabled={n <= triggerStage}
+                  className={`w-full px-3 py-2 rounded-lg text-left text-sm flex items-center justify-between ${
+                    n <= triggerStage ? 'bg-ink-800 text-ink-500 cursor-not-allowed' : 'bg-ink-850 text-ink-200 hover:bg-ink-800 hover:text-ink-50'
+                  }`}
+                >
+                  <span>Trigger {n}</span>
+                  {n <= triggerStage && <span className="text-[10px] text-ink-600">done</span>}
+                </button>
+              ))}
+            </div>
+            <div className="mt-4 pt-4 border-t border-ink-800 flex gap-2">
+              <button onClick={nextTrigger} className="flex-1 px-3 py-2 rounded-lg bg-accent text-ink-950 text-sm font-medium hover:opacity-90 inline-flex items-center justify-center gap-1.5">
+                <Play size={13} /> Next (F2)
+              </button>
+              <button onClick={resetTriggers} className="px-3 py-2 rounded-lg bg-ink-800 text-ink-300 text-sm hover:bg-ink-700 inline-flex items-center gap-1.5">
+                <RotateCcw size={13} /> Reset
+              </button>
+            </div>
+            <div className="mt-3 text-[10px] text-ink-600 text-center font-mono">
+              ~ toggle · F2 next · Ctrl+Shift+W open
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Site header */}
       <div className="border-b border-ink-800 bg-ink-900">
         <div className="max-w-4xl mx-auto px-6 py-5">
@@ -165,9 +344,7 @@ export default function Wiki() {
               key={t}
               onClick={() => setTab(t)}
               className={`px-4 py-3 text-sm border-b-2 -mb-px capitalize transition-colors ${
-                tab === t
-                  ? 'border-accent text-ink-50'
-                  : 'border-transparent text-ink-400 hover:text-ink-200'
+                tab === t ? 'border-accent text-ink-50' : 'border-transparent text-ink-400 hover:text-ink-200'
               }`}
             >
               {t}
@@ -181,16 +358,12 @@ export default function Wiki() {
       </div>
 
       {tab === 'article' ? (
-        <article className="max-w-4xl mx-auto px-6 py-8">
-          {/* Title block */}
+        <article className={`max-w-4xl mx-auto px-6 py-8 ${isRefreshing ? 'opacity-50' : 'opacity-100'} transition-opacity duration-300`}>
           <div className="grid md:grid-cols-[1fr_240px] gap-8">
             <div>
-               <h1 className="font-serif text-4xl text-ink-50 mb-1">Neil Sharma</h1>
-              <p className="text-sm text-ink-500 mb-5">
-                From Veilpedia, the free encyclopedia
-              </p>
+              <h1 className="font-serif text-4xl text-ink-50 mb-1">Neil Sharma</h1>
+              <p className="text-sm text-ink-500 mb-5">From Veilpedia, the free encyclopedia</p>
 
-              {/* Infobox */}
               <div className="hidden md:block mb-6" />
 
               {sections.map((sec) => (
@@ -207,21 +380,47 @@ export default function Wiki() {
                   {sec.open && (
                     <div className="pl-6 py-2 space-y-3 text-[15px] leading-7 text-ink-200">
                       {sec.body.map((p, i) => (
-                        <p key={i}>
+                        <p key={i} className={p.startsWith('UPDATE:') || p.startsWith('Neil died') ? 'text-warn italic' : ''}>
                           {p}
-                          {/* Insert horror paragraph inside the incident section */}
-                           {sec.id === 'later' && i === sec.body.length - 1 && newPara && (
-                            <span
-                              key={newPara.id}
-                              className="block mt-3 text-ink-300 italic"
-                              style={{ animation: 'revealText 1.4s ease-out' }}
-                            >
+                          {sec.id === 'later' && i === sec.body.length - 1 && infiniteLoading && (
+                            <span className="block mt-3 text-ink-400 italic">
                               <ShieldAlert size={13} className="inline mr-1.5 text-warn align-text-bottom" />
-                              {newPara.text}
+                              Neil died friendless and alone.
+                              <br />
+                              Date and Time:{' '}
+                              <span className="inline-block w-2 h-4 bg-accent animate-pulse ml-1 align-middle" />
+                              <span className="inline-block w-2 h-4 bg-accent animate-pulse ml-0.5 align-middle" style={{ animationDelay: '0.2s' }} />
+                              <span className="inline-block w-2 h-4 bg-accent animate-pulse ml-0.5 align-middle" style={{ animationDelay: '0.4s' }} />
+                              <br />
+                              Cause of Death:{' '}
+                              <span className="inline-block w-2 h-4 bg-accent animate-pulse ml-1 align-middle" style={{ animationDelay: '0.1s' }} />
+                              <span className="inline-block w-2 h-4 bg-accent animate-pulse ml-0.5 align-middle" style={{ animationDelay: '0.3s' }} />
+                              <span className="inline-block w-2 h-4 bg-accent animate-pulse ml-0.5 align-middle" style={{ animationDelay: '0.5s' }} />
                             </span>
                           )}
                         </p>
                       ))}
+                      {editingSection === sec.id ? (
+                        <div className="mt-2 p-3 bg-ink-900 border border-ink-700 rounded-lg">
+                          <textarea
+                            value={editDraft}
+                            onChange={(e) => setEditDraft(e.target.value)}
+                            className="w-full bg-transparent outline-none resize-none text-[15px] leading-7 text-ink-100 min-h-[100px]"
+                            autoFocus
+                          />
+                          <div className="flex gap-2 mt-2">
+                            <button onClick={saveEdit} className="px-3 py-1 rounded bg-accent text-ink-950 text-xs font-medium hover:opacity-90">Save</button>
+                            <button onClick={() => setEditingSection(null)} className="px-3 py-1 rounded bg-ink-800 text-ink-300 text-xs hover:bg-ink-700">Cancel</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => startEdit(sec.id)}
+                          className="mt-2 text-[11px] text-ink-600 hover:text-accent font-mono"
+                        >
+                          [edit section]
+                        </button>
+                      )}
                     </div>
                   )}
                 </section>
@@ -254,9 +453,7 @@ export default function Wiki() {
                       <button className="text-accent text-xs inline-flex items-center gap-1 hover:underline">
                         <ExternalLink size={11} /> Open source
                       </button>
-                      <button onClick={() => setActiveRef(null)} className="text-ink-500 text-xs hover:text-ink-300">
-                        close
-                      </button>
+                      <button onClick={() => setActiveRef(null)} className="text-ink-500 text-xs hover:text-ink-300">close</button>
                     </div>
                   </div>
                 )}
@@ -270,10 +467,7 @@ export default function Wiki() {
                   Neil Sharma
                 </div>
                 <div className="aspect-square bg-ink-950 grid place-items-center relative overflow-hidden">
-                  {/* Placeholder avatar */}
-                  <div className="h-16 w-16 rounded-full bg-ink-700 grid place-items-center text-xl font-serif text-ink-300">
-                    NS
-                  </div>
+                  <div className="h-16 w-16 rounded-full bg-ink-700 grid place-items-center text-xl font-serif text-ink-300">NS</div>
                   <div className="absolute bottom-0 left-0 right-0 bg-ink-950/80 backdrop-blur px-2 py-1 text-[10px] text-center text-ink-400">
                     Student · Athlete
                   </div>
@@ -304,13 +498,11 @@ export default function Wiki() {
       ) : (
         <HistoryView history={history} count={editCount} />
       )}
-
-      <style>{`@keyframes revealText{from{opacity:0;transform:translateY(4px);filter:blur(2px)}to{opacity:1;transform:translateY(0);filter:blur(0)}}`}</style>
     </div>
   );
 }
 
-function HistoryView({ history, count }: { history: EditRecord[]; count: number }) {
+function HistoryView({ history, count }: { history: UpdateRecord[]; count: number }) {
   return (
     <div className="max-w-4xl mx-auto px-6 py-8">
       <div className="flex items-center gap-2 mb-1">
@@ -318,31 +510,24 @@ function HistoryView({ history, count }: { history: EditRecord[]; count: number 
         <h1 className="font-serif text-2xl text-ink-50">Revision history</h1>
       </div>
       <p className="text-sm text-ink-500 mb-6">
-        "Neil Sharma" — {count} edits · viewing latest 5 of {count}
+        "Neil Sharma" — {count} edits · viewing latest {Math.min(history.length, 10)} of {history.length}
       </p>
 
       <div className="space-y-3">
-        {history.map((e, i) => (
+        {history.slice().reverse().slice(0, 10).map((e) => (
           <div
-            key={i}
+            key={e.id}
             className="flex items-start gap-3 p-3 rounded-lg bg-ink-900 border border-ink-800 hover:border-ink-700"
           >
-            <div className={`h-2 w-2 rounded-full mt-2 ${e.bytes > 0 ? 'bg-accent' : e.bytes < 0 ? 'bg-danger' : 'bg-ink-500'}`} />
+            <div className={`h-2 w-2 rounded-full mt-2 ${e.trigger > 0 ? 'bg-danger' : 'bg-accent'}`} />
             <div className="flex-1">
-              <div className="text-sm text-ink-100">{e.summary}</div>
+              <div className="text-sm text-ink-100">{e.text}</div>
               <div className="text-xs text-ink-500 mt-0.5 flex items-center gap-2">
-                <span className="font-mono">{e.user}</span>
+                <span className="font-mono">{e.director}</span>
                 <span>·</span>
                 <span className="font-mono">{e.time}</span>
-                <span>·</span>
-                <span className={e.bytes >= 0 ? 'text-accent' : 'text-danger'}>
-                  {e.bytes >= 0 ? '+' : ''}{e.bytes} bytes
-                </span>
+                {e.trigger > 0 && <span className="text-danger text-[10px]">TRIGGER {e.trigger}</span>}
               </div>
-            </div>
-            <div className="flex gap-1">
-              <button className="px-2.5 py-1 text-xs rounded bg-ink-800 text-ink-300 hover:bg-ink-700">prev</button>
-              <button className="px-2.5 py-1 text-xs rounded bg-ink-800 text-ink-300 hover:bg-ink-700">cur</button>
             </div>
           </div>
         ))}
