@@ -37,10 +37,20 @@ const AI_RESPONSES = [
   'I would prefer not to answer that.',
 ];
 
-const USER_SEED: ChatMessage[] = [
-  { id: '1', role: 'user', text: 'hello', ts: Date.now() - 60000 },
-  { id: '2', role: 'ai', text: AI_RESPONSES[0], ts: Date.now() - 59500 },
-];
+const STORAGE_KEY = 'atlas.chat.v1';
+
+function loadMessages(): ChatMessage[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed as ChatMessage[];
+    }
+  } catch {
+    /* ignore */
+  }
+  return [];
+}
 
 const REMOTE_INJECTIONS = {
   user: [
@@ -69,7 +79,7 @@ function isLink(part: string): boolean {
 }
 
 export default function Atlas() {
-  const [messages, setMessages] = useState<ChatMessage[]>(USER_SEED);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => loadMessages());
   const [input, setInput] = useState('');
   const [thinking, setThinking] = useState(false);
   const [streamed, setStreamed] = useState('');
@@ -87,6 +97,10 @@ export default function Atlas() {
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages, streamed]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+  }, [messages]);
 
   const stopStream = () => {
     if (streamTimer.current) {
