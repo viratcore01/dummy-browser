@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Sparkles, Send, Trash2, Square, MoreVertical, Play, Edit2, Download, Clock } from 'lucide-react';
+import { Sparkles, Send, Trash2, Square, MoreVertical, Edit2, Download, Clock } from 'lucide-react';
 import { useBrowser, useCrew } from '../browser/store';
 import type { ChatMessage } from '../browser/types';
 
@@ -83,16 +83,15 @@ export default function Atlas() {
   const [input, setInput] = useState('');
   const [thinking, setThinking] = useState(false);
   const [streamed, setStreamed] = useState('');
-  const [scriptMode, setScriptMode] = useState(false);
-  const [scriptIndex, setScriptIndex] = useState(0);
-  const [scriptPlaying, setScriptPlaying] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
   const { navigate } = useBrowser();
   const scrollRef = useRef<HTMLDivElement>(null);
   const streamTimer = useRef<ReturnType<typeof setInterval> | null>(null);
-  const scriptTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  let scriptIdx = messages.length > 0 ? SCRIPTED_CONVERSATION.findIndex((_, i) => i >= 0 && SCRIPTED_CONVERSATION.slice(0, i + 1).filter((m) => m.role === 'ai').length === messages.filter((m) => m.role === 'ai').length) : 0;
+  if (scriptIdx === -1) scriptIdx = SCRIPTED_CONVERSATION.length;
+  const [scriptIndex, setScriptIndex] = useState(() => scriptIdx);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -107,14 +106,6 @@ export default function Atlas() {
       clearInterval(streamTimer.current);
       streamTimer.current = null;
     }
-  };
-
-  const stopScript = () => {
-    if (scriptTimer.current) {
-      clearTimeout(scriptTimer.current);
-      scriptTimer.current = null;
-    }
-    setScriptPlaying(false);
   };
 
   const streamResponse = (fullText: string, onDone?: () => void) => {
@@ -145,82 +136,44 @@ export default function Atlas() {
     setTimeout(() => streamResponse(reply), delay);
   };
 
-  const playNextScriptLine = () => {
-    if (scriptIndex >= SCRIPTED_CONVERSATION.length) {
-      stopScript();
-      setScriptMode(false);
-      return;
+  const sendUserLine = () => {
+    while (scriptIndex < SCRIPTED_CONVERSATION.length && SCRIPTED_CONVERSATION[scriptIndex].role !== 'user') {
+      setScriptIndex((i) => i + 1);
     }
+    if (scriptIndex >= SCRIPTED_CONVERSATION.length) return;
     const line = SCRIPTED_CONVERSATION[scriptIndex];
     setScriptIndex((i) => i + 1);
-    if (line.role === 'user') {
-      const msg: ChatMessage = { id: String(Date.now()), role: 'user', text: line.text, ts: Date.now() };
-      setMessages((m) => [...m, msg]);
-      const nextIdx = scriptIndex + 1;
-      if (nextIdx < SCRIPTED_CONVERSATION.length && SCRIPTED_CONVERSATION[nextIdx].role === 'ai') {
-        scriptTimer.current = setTimeout(() => {
-          setThinking(true);
-          const aiText = SCRIPTED_CONVERSATION[nextIdx].text;
-          const delay = 500 + Math.random() * 1200;
-          setTimeout(() => {
-            setThinking(false);
-            let i = 0;
-            streamTimer.current = setInterval(() => {
-              i++;
-              setStreamed(aiText.slice(0, i));
-              if (i >= aiText.length) {
-                stopStream();
-                setMessages((m) => [...m, { id: String(Date.now()), role: 'ai', text: aiText, ts: Date.now() }]);
-                setStreamed('');
-                setScriptIndex((idx) => idx + 1);
-                if (scriptPlaying) scriptTimer.current = setTimeout(playNextScriptLine, 1200);
-              }
-            }, 28 + Math.random() * 40);
-          }, delay);
-        }, 600);
-      } else {
-        if (scriptPlaying) scriptTimer.current = setTimeout(playNextScriptLine, 800);
-      }
+    const msg: ChatMessage = { id: String(Date.now()), role: 'user', text: line.text, ts: Date.now() };
+    setMessages((m) => [...m, msg]);
+  };
+
+  const sendAiLine = () => {
+    setThinking(true);
+    while (scriptIndex < SCRIPTED_CONVERSATION.length && SCRIPTED_CONVERSATION[scriptIndex].role !== 'ai') {
+      setScriptIndex((i) => i + 1);
     }
+    if (scriptIndex >= SCRIPTED_CONVERSATION.length) return;
+    const line = SCRIPTED_CONVERSATION[scriptIndex];
+    setScriptIndex((i) => i + 1);
+    const delay = 500 + Math.random() * 1200;
+    setTimeout(() => {
+      setThinking(false);
+      let i = 0;
+      streamTimer.current = setInterval(() => {
+        i++;
+        setStreamed(line.text.slice(0, i));
+        if (i >= line.text.length) {
+          stopStream();
+          setMessages((m) => [...m, { id: String(Date.now()), role: 'ai', text: line.text, ts: Date.now() }]);
+          setStreamed('');
+        }
+      }, 28 + Math.random() * 40);
+    }, delay);
   };
-
-  const startScript = () => {
-    stopStream();
-    stopScript();
-    setMessages([]);
-    setScriptIndex(0);
-    setScriptMode(true);
-    setScriptPlaying(true);
-    setTimeout(() => playNextScriptLine(), 300);
-  };
-
-  const skipScript = () => {
-    stopScript();
-    setScriptPlaying(false);
-  };
-
-  const toggleScript = () => {
-    if (scriptPlaying) {
-      stopScript();
-    } else {
-      if (scriptIndex >= SCRIPTED_CONVERSATION.length) {
-        setScriptIndex(0);
-      }
-      setScriptPlaying(true);
-      setTimeout(() => playNextScriptLine(), 300);
-    }
-  };
-
-  useEffect(() => {
-    return () => {
-      stopStream();
-      stopScript();
-    };
-  }, []);
 
   const send = () => {
     const v = input.trim();
-    if (!v || thinking || streamed || scriptPlaying) return;
+    if (!v || thinking || streamed) return;
     const user: ChatMessage = { id: String(Date.now()), role: 'user', text: v, ts: Date.now() };
     setMessages((m) => [...m, user]);
     setInput('');
@@ -229,13 +182,17 @@ export default function Atlas() {
 
   const clear = () => {
     stopStream();
-    stopScript();
     setMessages([]);
     setThinking(false);
     setStreamed('');
-    setScriptMode(false);
     setScriptIndex(0);
   };
+
+  useEffect(() => {
+    return () => {
+      stopStream();
+    };
+  }, []);
 
   const deleteMessage = (id: string) => {
     setMessages((m) => m.filter((x) => x.id !== id));
@@ -272,18 +229,16 @@ export default function Atlas() {
     setShowMoreMenu(false);
   };
 
-  // crew: 5 → scripted reply or next script line
-  useCrew('atlas:reply', () => {
+  // crew: 4 → next user line from script
+  useCrew('atlas:user', () => {
     if (thinking || streamed) return;
-    if (scriptMode && scriptPlaying) {
-      skipScript();
-      setTimeout(() => {
-        setScriptPlaying(true);
-        playNextScriptLine();
-      }, 200);
-    } else if (!scriptMode) {
-      respondTo(' ');
-    }
+    sendUserLine();
+  });
+
+  // crew: 5 → next AI line from script
+  useCrew('atlas:ai', () => {
+    if (thinking || streamed) return;
+    sendAiLine();
   });
 
   // crew: 6 → remote injection
@@ -331,9 +286,6 @@ export default function Atlas() {
               </button>
               {showMoreMenu && (
                 <div className="absolute right-0 top-10 w-52 bg-ink-850 border border-ink-700 rounded-lg shadow-2xl z-50 py-1">
-                  <button onClick={startScript} className="w-full px-3 py-2 text-left text-sm text-ink-200 hover:bg-ink-800 hover:text-ink-50 flex items-center gap-2">
-                    <Play size={14} /> Play Scripted Convo
-                  </button>
                   <button onClick={clear} className="w-full px-3 py-2 text-left text-sm text-ink-200 hover:bg-ink-800 hover:text-ink-50 flex items-center gap-2">
                     <Trash2 size={14} /> Clear Chat
                   </button>
@@ -423,17 +375,17 @@ export default function Atlas() {
                   e.preventDefault();
                   send();
                 }
-                if (e.key === ' ' && !input.trim() && !editingId) {
+                if (e.key === '4' && !input.trim() && !editingId) {
                   e.preventDefault();
-                  if (!scriptMode || scriptIndex >= SCRIPTED_CONVERSATION.length) {
-                    startScript();
-                  } else {
-                    toggleScript();
-                  }
+                  sendUserLine();
+                }
+                if (e.key === '5' && !input.trim() && !editingId) {
+                  e.preventDefault();
+                  sendAiLine();
                 }
               }}
               rows={1}
-              placeholder={scriptMode ? 'Script mode active — press 5 to play/skip…' : 'Ask ATLAS anything…'}
+              placeholder="Press 4 for user · 5 for AI"
               className="flex-1 bg-transparent outline-none resize-none text-[15px] text-ink-100 placeholder:text-ink-600 max-h-32"
             />
             {(thinking || streamed) ? (
@@ -457,11 +409,9 @@ export default function Atlas() {
           </div>
           <div className="mt-2 text-[11px] text-ink-600 text-center">
             ATLAS generates responses. It may say things it has not been asked.
-            {scriptMode && ' · Press Space to play/pause script · Press Esc to exit script mode'}
           </div>
         </div>
       </div>
-      <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}`}</style>
     </div>
   );
 }

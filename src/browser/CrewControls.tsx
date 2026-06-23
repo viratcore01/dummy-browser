@@ -8,8 +8,8 @@ import { useBrowser } from './store';
  *  1 → open wiki.local/neil
  *  2 → trigger live wiki article change
  *  3 → open veil.onion/live
- *  4 → bump livestream viewer count
- *  5 → force an ATLAS reply
+ *  4 → next user line in ATLAS script
+ *  5 → next AI line in ATLAS script
  *  6 → remote "user" message into ATLAS (someone else typing)
  *  7 → drop a notification
  *  8 → simulate fake network lag spike on current tab
@@ -48,11 +48,11 @@ export default function CrewControls() {
           void navigate('veil.onion/live', { titleOverride: 'VEIL // LIVE' });
           break;
         case '4':
-          broadcast('veil:viewers', {});
-          fire('notify', { title: 'Viewer influx', body: '+24 viewers joined the broadcast.', from: 'veil' });
+          broadcast('atlas:user', {});
+          fire('notify', { title: 'ATLAS', body: 'User line injected', from: 'atlas.chat' });
           break;
         case '5':
-          broadcast('atlas:reply', {});
+          broadcast('atlas:ai', {});
           fire('notify', { title: 'ATLAS', body: 'ATLAS is composing a reply…', from: 'atlas.chat' });
           break;
         case '6':
@@ -100,7 +100,7 @@ export default function CrewControls() {
       )}
       {showHint && (
         <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-[90] px-4 py-2 rounded-lg bg-ink-850/80 backdrop-blur text-[11px] text-ink-400 font-mono border border-ink-700">
-          crew: <span className="text-accent">1</span> wiki · <span className="text-accent">2</span> article change · <span className="text-accent">3</span> live · <span className="text-accent">4</span> viewers · <span className="text-accent">5</span> atlas reply · <span className="text-accent">0</span> blackout
+          crew: <span className="text-accent">1</span> wiki · <span className="text-accent">2</span> article change · <span className="text-accent">3</span> live · <span className="text-accent">4</span> user line · <span className="text-accent">5</span> AI line · <span className="text-accent">0</span> blackout
         </div>
       )}
     </>
