@@ -9,6 +9,8 @@ import {
   Minus,
   Square,
   Shield,
+  History,
+  Settings2,
 } from 'lucide-react';
 import { useBrowser, useActiveEntry } from './store';
 import Favicon from './Favicon';
@@ -33,7 +35,11 @@ export default function BrowserFrame() {
   const entry = useActiveEntry();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
+  const [showHistory, setShowHistory] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const historyRef = useRef<HTMLDivElement>(null);
+  const settingsRef = useRef<HTMLDivElement>(null);
 
   const displayUrl = entry?.displayUrl ?? 'browse://';
   const isSecure = entry?.host === 'wiki' || entry?.host === 'atlas' || entry?.host === 'home' || entry?.host === 'search';
@@ -41,6 +47,15 @@ export default function BrowserFrame() {
   useEffect(() => {
     if (editing && inputRef.current) inputRef.current.select();
   }, [editing]);
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (historyRef.current && !historyRef.current.contains(e.target as Node)) setShowHistory(false);
+      if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) setShowSettings(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
 
   const commit = () => {
     const v = draft.trim();
@@ -143,6 +158,52 @@ export default function BrowserFrame() {
         </div>
 
         <div className="hidden sm:flex items-center gap-0.5">
+          <div className="relative" ref={historyRef}>
+            <NavBtn onClick={() => setShowHistory((h) => !h)} label="History">
+              <History size={14} />
+            </NavBtn>
+            {showHistory && (
+              <div className="absolute right-0 top-10 w-72 bg-ink-850 border border-ink-700 rounded-lg shadow-2xl z-50 py-1">
+                <div className="px-3 py-2 text-[11px] text-ink-500 font-mono uppercase tracking-wider border-b border-ink-700">
+                  Search History
+                </div>
+                {active.history.length === 0 ? (
+                  <div className="px-3 py-3 text-xs text-ink-500">No entries yet</div>
+                ) : (
+                  active.history.slice().reverse().map((h, i) => {
+                    const idx = active.history.length - 1 - i;
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => { setShowHistory(false); void navigate(active.history[idx]?.url ?? 'home'); }}
+                        className={`w-full px-3 py-2 text-left hover:bg-ink-800 flex items-center gap-2 ${
+                          idx === active.cursor ? 'bg-ink-800' : ''
+                        }`}
+                      >
+                        <History size={11} className="text-ink-500 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs text-ink-200 truncate">{h.displayUrl || h.url}</div>
+                          <div className="text-[10px] text-ink-500 font-mono">{new Date(h.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                        </div>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            )}
+          </div>
+          <div className="relative" ref={settingsRef}>
+            <NavBtn onClick={() => setShowSettings((s) => !s)} label="Settings">
+              <Settings2 size={14} />
+            </NavBtn>
+            {showSettings && (
+              <div className="absolute right-0 top-10 w-52 bg-ink-850 border border-ink-700 rounded-lg shadow-2xl z-50 py-1">
+                <button onClick={() => { setEditing(true); setShowSettings(false); }} className="w-full px-3 py-2 text-left text-sm text-ink-200 hover:bg-ink-800 hover:text-ink-50">Edit URL</button>
+                <button onClick={() => { setShowSettings(false); }} className="w-full px-3 py-2 text-left text-sm text-ink-200 hover:bg-ink-800 hover:text-ink-50">Clear History</button>
+                <button onClick={() => { setShowSettings(false); }} className="w-full px-3 py-2 text-left text-sm text-ink-200 hover:bg-ink-800 hover:text-ink-50">Privacy Settings</button>
+              </div>
+            )}
+          </div>
           <WinBtn><Minus size={13} /></WinBtn>
           <WinBtn><Square size={12} /></WinBtn>
           <WinBtn danger><X size={13} /></WinBtn>

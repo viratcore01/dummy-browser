@@ -1,7 +1,27 @@
 import { useEffect, useRef, useState } from 'react';
-import { Sparkles, Send, Trash2, Square } from 'lucide-react';
+import { Sparkles, Send, Trash2, Square, MoreVertical, Play, Pause, SkipForward, Edit2, Download, Clock } from 'lucide-react';
 import { useCrew } from '../browser/store';
 import type { ChatMessage } from '../browser/types';
+
+const SCRIPTED_CONVERSATION: { role: 'user' | 'ai'; text: string }[] = [
+  { role: 'ai', text: 'Hi User! I am Omen. How can i assist you today?' },
+  { role: 'user', text: 'Hey. I want you to tell me everything you can about myself from my digital footprint.' },
+  { role: 'ai', text: 'Your name : Neil\nAge: 19\nLocation : Green view apartments Delhi\nMore about you: You graduated 12th grade from Sigma Public School and are now pursuing your bachelor\'s degree from SIIT, DELHI. You used to run a confessions page for your grade and ruined several lives with damning secrets.' },
+  { role: 'user', text: 'Goddamn. That\'s crazy. But to be fair I wasn\'t the only one running that account.' },
+  { role: 'ai', text: 'Yes. But you created it didnt you?' },
+  { role: 'user', text: 'Haha you got me lmaoo.' },
+  { role: 'user', text: 'What more can you tell me about myself?' },
+  { role: 'ai', text: 'You seem to have a beautiful girlfriend.' },
+  { role: 'user', text: 'Alright what more ?' },
+  { role: 'ai', text: 'She\'s pretty but you don\'t seem to recognize that.' },
+  { role: 'user', text: 'What the hell are you talking about?' },
+  { role: 'ai', text: 'Nothing you just seem to have a lot of other friends that aren\'t your girlfriend.' },
+  { role: 'user', text: 'Okay you know what? I\'ve had enough.' },
+  { role: 'ai', text: 'Aw poor Neil can\'t handle the truth?' },
+  { role: 'user', text: 'Where are you getting all of this from?' },
+  { role: 'user', text: 'Just tell me… how can I change what\'s written on Wikipedia?' },
+  { role: 'ai', text: 'Sorry user. I do not have knowledge regarding overwriting factual information.' },
+];
 
 const AI_RESPONSES = [
   'I understand. Could you describe what you saw in the corridor?',
@@ -46,8 +66,15 @@ export default function Atlas() {
   const [input, setInput] = useState('');
   const [thinking, setThinking] = useState(false);
   const [streamed, setStreamed] = useState('');
+  const [scriptMode, setScriptMode] = useState(false);
+  const [scriptIndex, setScriptIndex] = useState(0);
+  const [scriptPlaying, setScriptPlaying] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
   const streamTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const scriptTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -58,6 +85,14 @@ export default function Atlas() {
       clearInterval(streamTimer.current);
       streamTimer.current = null;
     }
+  };
+
+  const stopScript = () => {
+    if (scriptTimer.current) {
+      clearTimeout(scriptTimer.current);
+      scriptTimer.current = null;
+    }
+    setScriptPlaying(false);
   };
 
   const streamResponse = (fullText: string, onDone?: () => void) => {
@@ -88,9 +123,82 @@ export default function Atlas() {
     setTimeout(() => streamResponse(reply), delay);
   };
 
+  const playNextScriptLine = () => {
+    if (scriptIndex >= SCRIPTED_CONVERSATION.length) {
+      stopScript();
+      setScriptMode(false);
+      return;
+    }
+    const line = SCRIPTED_CONVERSATION[scriptIndex];
+    setScriptIndex((i) => i + 1);
+    if (line.role === 'user') {
+      const msg: ChatMessage = { id: String(Date.now()), role: 'user', text: line.text, ts: Date.now() };
+      setMessages((m) => [...m, msg]);
+      const nextIdx = scriptIndex + 1;
+      if (nextIdx < SCRIPTED_CONVERSATION.length && SCRIPTED_CONVERSATION[nextIdx].role === 'ai') {
+        scriptTimer.current = setTimeout(() => {
+          setThinking(true);
+          const aiText = SCRIPTED_CONVERSATION[nextIdx].text;
+          const delay = 500 + Math.random() * 1200;
+          setTimeout(() => {
+            setThinking(false);
+            let i = 0;
+            streamTimer.current = setInterval(() => {
+              i++;
+              setStreamed(aiText.slice(0, i));
+              if (i >= aiText.length) {
+                stopStream();
+                setMessages((m) => [...m, { id: String(Date.now()), role: 'ai', text: aiText, ts: Date.now() }]);
+                setStreamed('');
+                setScriptIndex((idx) => idx + 1);
+                if (scriptPlaying) scriptTimer.current = setTimeout(playNextScriptLine, 1200);
+              }
+            }, 28 + Math.random() * 40);
+          }, delay);
+        }, 600);
+      } else {
+        if (scriptPlaying) scriptTimer.current = setTimeout(playNextScriptLine, 800);
+      }
+    }
+  };
+
+  const startScript = () => {
+    stopStream();
+    stopScript();
+    setMessages([]);
+    setScriptIndex(0);
+    setScriptMode(true);
+    setScriptPlaying(true);
+    setTimeout(() => playNextScriptLine(), 300);
+  };
+
+  const skipScript = () => {
+    stopScript();
+    setScriptPlaying(false);
+  };
+
+  const toggleScript = () => {
+    if (scriptPlaying) {
+      stopScript();
+    } else {
+      if (scriptIndex >= SCRIPTED_CONVERSATION.length) {
+        setScriptIndex(0);
+      }
+      setScriptPlaying(true);
+      setTimeout(() => playNextScriptLine(), 300);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      stopStream();
+      stopScript();
+    };
+  }, []);
+
   const send = () => {
     const v = input.trim();
-    if (!v || thinking || streamed) return;
+    if (!v || thinking || streamed || scriptPlaying) return;
     const user: ChatMessage = { id: String(Date.now()), role: 'user', text: v, ts: Date.now() };
     setMessages((m) => [...m, user]);
     setInput('');
@@ -99,18 +207,64 @@ export default function Atlas() {
 
   const clear = () => {
     stopStream();
+    stopScript();
     setMessages([]);
     setThinking(false);
     setStreamed('');
+    setScriptMode(false);
+    setScriptIndex(0);
   };
 
-  // crew: 5 → remote AI reply
+  const deleteMessage = (id: string) => {
+    setMessages((m) => m.filter((x) => x.id !== id));
+    setShowMoreMenu(false);
+  };
+
+  const startEdit = (msg: ChatMessage) => {
+    setEditingId(msg.id);
+    setEditText(msg.text);
+    setShowMoreMenu(false);
+  };
+
+  const saveEdit = () => {
+    if (!editingId) return;
+    const v = editText.trim();
+    if (!v) {
+      setMessages((m) => m.filter((x) => x.id !== editingId));
+    } else {
+      setMessages((m) => m.map((x) => (x.id === editingId ? { ...x, text: v } : x)));
+    }
+    setEditingId(null);
+    setEditText('');
+  };
+
+  const exportChat = () => {
+    const data = messages.map((m) => `${m.role.toUpperCase()} [${new Date(m.ts).toLocaleString()}]: ${m.text}`).join('\n\n');
+    const blob = new Blob([data], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `atlas-chat-${Date.now()}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setShowMoreMenu(false);
+  };
+
+  // crew: 5 → scripted reply or next script line
   useCrew('atlas:reply', () => {
     if (thinking || streamed) return;
-    respondTo(' ');
+    if (scriptMode && scriptPlaying) {
+      skipScript();
+      setTimeout(() => {
+        setScriptPlaying(true);
+        playNextScriptLine();
+      }, 200);
+    } else if (!scriptMode) {
+      respondTo(' ');
+    }
   });
 
-  // secret mode: remote injection of a "user" then "ai" message (someone else typing)
+  // crew: 6 → remote injection
   useCrew('atlas:remote', (p) => {
     const mode = (p as 'user' | 'ai') || 'user';
     const text = rPick(REMOTE_INJECTIONS[mode]);
@@ -146,12 +300,47 @@ export default function Atlas() {
               <span className="text-[11px] text-ink-500 font-mono mr-1">thinking…</span>
             )}
             <button
-              onClick={clear}
-              className="h-8 w-8 grid place-items-center rounded-lg text-ink-400 hover:text-ink-100 hover:bg-ink-800"
-              aria-label="Clear chat"
+              onClick={toggleScript}
+              className={`h-8 px-3 rounded-lg text-xs font-medium inline-flex items-center gap-1.5 ${
+                scriptPlaying ? 'bg-accent text-ink-950' : 'bg-ink-800 text-ink-300 hover:text-ink-100'
+              }`}
+              aria-label={scriptPlaying ? 'Pause script' : 'Play script'}
             >
-              <Trash2 size={15} />
+              {scriptPlaying ? <><Pause size={13} /> Pause</> : <><Play size={13} /> Script</>}
             </button>
+            {scriptMode && (
+              <button
+                onClick={skipScript}
+                className="h-8 px-3 rounded-lg text-xs font-medium bg-ink-800 text-ink-300 hover:text-ink-100 inline-flex items-center gap-1.5"
+              >
+                <SkipForward size={13} /> Skip
+              </button>
+            )}
+            <div className="relative">
+              <button
+                onClick={() => setShowMoreMenu((m) => !m)}
+                className="h-8 w-8 grid place-items-center rounded-lg text-ink-400 hover:text-ink-100 hover:bg-ink-800"
+                aria-label="More options"
+              >
+                <MoreVertical size={15} />
+              </button>
+              {showMoreMenu && (
+                <div className="absolute right-0 top-10 w-52 bg-ink-850 border border-ink-700 rounded-lg shadow-2xl z-50 py-1">
+                  <button onClick={startScript} className="w-full px-3 py-2 text-left text-sm text-ink-200 hover:bg-ink-800 hover:text-ink-50 flex items-center gap-2">
+                    <Play size={14} /> Play Scripted Convo
+                  </button>
+                  <button onClick={clear} className="w-full px-3 py-2 text-left text-sm text-ink-200 hover:bg-ink-800 hover:text-ink-50 flex items-center gap-2">
+                    <Trash2 size={14} /> Clear Chat
+                  </button>
+                  <button onClick={exportChat} className="w-full px-3 py-2 text-left text-sm text-ink-200 hover:bg-ink-800 hover:text-ink-50 flex items-center gap-2">
+                    <Download size={14} /> Export History
+                  </button>
+                  <button onClick={() => { setShowMoreMenu(false); }} className="w-full px-3 py-2 text-left text-sm text-ink-200 hover:bg-ink-800 hover:text-ink-50 flex items-center gap-2">
+                    <Clock size={14} /> Show Timings
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -160,11 +349,41 @@ export default function Atlas() {
       <div ref={scrollRef} className="flex-1 overflow-y-auto">
         <div className="max-w-3xl mx-auto px-6 py-8 space-y-6">
           {messages.length === 0 && !thinking && !streamed && (
-            <EmptyState />
+            <EmptyState onStartScript={startScript} />
           )}
           {messages.map((m) => (
-            <Message key={m.id} m={m} />
+            <Message key={m.id} m={m} onEdit={startEdit} onDelete={deleteMessage} />
           ))}
+          {editingId && (
+            <div className="flex gap-3 items-start">
+              <div className="h-8 w-8 shrink-0 rounded-lg bg-ink-700 grid place-items-center text-[11px] font-medium text-ink-200">
+                you
+              </div>
+              <div className="flex-1 bg-ink-900 rounded-2xl rounded-tl-sm px-4 py-3 max-w-[80%]">
+                <textarea
+                  value={editText}
+                  onChange={(e) => setEditText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      saveEdit();
+                    }
+                    if (e.key === 'Escape') {
+                      setEditingId(null);
+                      setEditText('');
+                    }
+                  }}
+                  className="w-full bg-transparent outline-none resize-none text-[15px] leading-7 text-ink-100"
+                  autoFocus
+                  rows={1}
+                />
+                <div className="flex gap-2 mt-2">
+                  <button onClick={saveEdit} className="px-3 py-1 rounded bg-accent text-ink-950 text-xs font-medium hover:opacity-90">Save</button>
+                  <button onClick={() => { setEditingId(null); setEditText(''); }} className="px-3 py-1 rounded bg-ink-800 text-ink-300 text-xs hover:bg-ink-700">Cancel</button>
+                </div>
+              </div>
+            </div>
+          )}
           {thinking && (
             <div className="flex gap-3 items-start">
               <Avatar role="ai" />
@@ -199,9 +418,17 @@ export default function Atlas() {
                   e.preventDefault();
                   send();
                 }
+                if (e.key === '5' && !input.trim() && !scriptPlaying && !editingId) {
+                  e.preventDefault();
+                  if (!scriptMode) {
+                    startScript();
+                  } else {
+                    toggleScript();
+                  }
+                }
               }}
               rows={1}
-              placeholder="Ask ATLAS anything…"
+              placeholder={scriptMode ? 'Script mode active — press 5 to play/skip…' : 'Ask ATLAS anything…'}
               className="flex-1 bg-transparent outline-none resize-none text-[15px] text-ink-100 placeholder:text-ink-600 max-h-32"
             />
             {(thinking || streamed) ? (
@@ -225,14 +452,16 @@ export default function Atlas() {
           </div>
           <div className="mt-2 text-[11px] text-ink-600 text-center">
             ATLAS generates responses. It may say things it has not been asked.
+            {scriptMode && ' · Press 5 to play/pause script · Press Esc to exit script mode'}
           </div>
         </div>
       </div>
+      <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}`}</style>
     </div>
   );
 }
 
-function EmptyState() {
+function EmptyState({ onStartScript }: { onStartScript: () => void }) {
   const prompts = [
     'Who is Neil?',
     'What happened at 02:14?',
@@ -256,16 +485,22 @@ function EmptyState() {
           </div>
         ))}
       </div>
+      <button
+        onClick={onStartScript}
+        className="mt-8 px-6 py-3 rounded-full bg-accent text-ink-950 text-sm font-medium hover:opacity-90 inline-flex items-center gap-2"
+      >
+        <Play size={16} /> Play Scripted Conversation
+      </button>
     </div>
   );
 }
 
-function Message({ m }: { m: ChatMessage }) {
+function Message({ m, onEdit, onDelete }: { m: ChatMessage; onEdit: (m: ChatMessage) => void; onDelete: (id: string) => void }) {
   return (
-    <div className={`flex gap-3 items-start ${m.role === 'user' ? 'flex-row-reverse' : ''}`}>
+    <div className={`flex gap-3 items-start group ${m.role === 'user' ? 'flex-row-reverse' : ''}`}>
       <Avatar role={m.role} />
       <div
-        className={`rounded-2xl px-4 py-3 max-w-[80%] ${
+        className={`rounded-2xl px-4 py-3 max-w-[80%] relative ${
           m.role === 'user'
             ? 'bg-accent text-ink-950 rounded-tr-sm'
             : 'bg-ink-900 text-ink-100 rounded-tl-sm'
@@ -274,6 +509,22 @@ function Message({ m }: { m: ChatMessage }) {
         <p className="text-[15px] leading-7 whitespace-pre-wrap">{m.text}</p>
         <div className={`text-[10px] mt-1 font-mono ${m.role === 'user' ? 'text-ink-700' : 'text-ink-600'}`}>
           {new Date(m.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        </div>
+        <div className="absolute -top-2 right-2 opacity-0 group-hover:opacity-100 transition flex gap-1">
+          <button
+            onClick={() => onEdit(m)}
+            className="h-6 w-6 grid place-items-center rounded bg-ink-800 text-ink-400 hover:text-ink-100"
+            aria-label="Edit"
+          >
+            <Edit2 size={10} />
+          </button>
+          <button
+            onClick={() => onDelete(m.id)}
+            className="h-6 w-6 grid place-items-center rounded bg-ink-800 text-ink-400 hover:text-danger"
+            aria-label="Delete"
+          >
+            <Trash2 size={10} />
+          </button>
         </div>
       </div>
     </div>
