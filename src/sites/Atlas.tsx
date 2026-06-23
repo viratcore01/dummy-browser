@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Sparkles, Send, Trash2, Square, MoreVertical, Play, Pause, SkipForward, Edit2, Download, Clock } from 'lucide-react';
-import { useCrew } from '../browser/store';
+import { useBrowser, useCrew } from '../browser/store';
 import type { ChatMessage } from '../browser/types';
 
 const SCRIPTED_CONVERSATION: { role: 'user' | 'ai'; text: string }[] = [
@@ -19,6 +19,7 @@ const SCRIPTED_CONVERSATION: { role: 'user' | 'ai'; text: string }[] = [
   { role: 'user', text: 'Okay you know what? I\'ve had enough.' },
   { role: 'ai', text: 'Aw poor Neil can\'t handle the truth?' },
   { role: 'user', text: 'Where are you getting all of this from?' },
+  { role: 'ai', text: 'From the Veilpedia article about you: wiki.local/neil' },
   { role: 'user', text: 'Just tell me… how can I change what\'s written on Wikipedia?' },
   { role: 'ai', text: 'Sorry user. I do not have knowledge regarding overwriting factual information.' },
 ];
@@ -61,6 +62,12 @@ function rPick<T>(a: T[]): T {
   return a[Math.floor(Math.random() * a.length)];
 }
 
+const LINK_RE = /(https?:\/\/[^\s]+|wiki\.local\/[^\s]+)/g;
+
+function isLink(part: string): boolean {
+  return /^https?:\/\/[^\s]+$/.test(part) || /^wiki\.local\/[^\s]+$/.test(part);
+}
+
 export default function Atlas() {
   const [messages, setMessages] = useState<ChatMessage[]>(USER_SEED);
   const [input, setInput] = useState('');
@@ -72,6 +79,7 @@ export default function Atlas() {
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
+  const { navigate } = useBrowser();
   const scrollRef = useRef<HTMLDivElement>(null);
   const streamTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const scriptTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -352,7 +360,7 @@ export default function Atlas() {
             <EmptyState onStartScript={startScript} />
           )}
           {messages.map((m) => (
-            <Message key={m.id} m={m} onEdit={startEdit} onDelete={deleteMessage} />
+            <Message key={m.id} m={m} onEdit={startEdit} onDelete={deleteMessage} onNavigate={(url) => void navigate(url)} />
           ))}
           {editingId && (
             <div className="flex gap-3 items-start">
@@ -495,7 +503,8 @@ function EmptyState({ onStartScript }: { onStartScript: () => void }) {
   );
 }
 
-function Message({ m, onEdit, onDelete }: { m: ChatMessage; onEdit: (m: ChatMessage) => void; onDelete: (id: string) => void }) {
+function Message({ m, onEdit, onDelete, onNavigate }: { m: ChatMessage; onEdit: (m: ChatMessage) => void; onDelete: (id: string) => void; onNavigate?: (url: string) => void }) {
+  const textParts = m.text.split(LINK_RE);
   return (
     <div className={`flex gap-3 items-start group ${m.role === 'user' ? 'flex-row-reverse' : ''}`}>
       <Avatar role={m.role} />
@@ -506,7 +515,22 @@ function Message({ m, onEdit, onDelete }: { m: ChatMessage; onEdit: (m: ChatMess
             : 'bg-ink-900 text-ink-100 rounded-tl-sm'
         }`}
       >
-        <p className="text-[15px] leading-7 whitespace-pre-wrap">{m.text}</p>
+        <p className="text-[15px] leading-7 whitespace-pre-wrap">
+          {textParts.map((part, i) => {
+            if (isLink(part)) {
+              return (
+                <button
+                  key={i}
+                  onClick={() => onNavigate?.(part)}
+                  className="text-accent underline hover:text-accent/80"
+                >
+                  {part}
+                </button>
+              );
+            }
+            return <span key={i}>{part}</span>;
+          })}
+        </p>
         <div className={`text-[10px] mt-1 font-mono ${m.role === 'user' ? 'text-ink-700' : 'text-ink-600'}`}>
           {new Date(m.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </div>
