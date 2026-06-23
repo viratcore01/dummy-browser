@@ -11,11 +11,33 @@ import {
   Shield,
   History,
   Settings2,
+  Trash2,
 } from 'lucide-react';
 import { useBrowser, useActiveEntry } from './useBrowser';
 import Favicon from './Favicon';
 import PageRouter from './PageRouter';
 import LoadingOverlay from './LoadingOverlay';
+import type { HistoryEntry } from './types';
+
+const SEARCH_HISTORY_KEY = 'veil.browser.searchHistory.v1';
+
+const INITIAL_SEARCH_HISTORY: HistoryEntry[] = [
+  { url: 'darkweb-violence.live', displayUrl: 'darkweb-violence.live', host: 'error', path: 'darkweb-violence.live', ts: Date.now() - 86400000 },
+  { url: 'steroids buy india', displayUrl: 'browse://steroids buy india', host: 'search', path: 'steroids%20buy%20india', ts: Date.now() - 172800000 },
+  { url: 'Kritika DM', displayUrl: 'browse://Kritika DM', host: 'search', path: 'Kritika%20DM', ts: Date.now() - 259200000 },
+  { url: 'bitcoin payment dark web', displayUrl: 'browse://bitcoin payment dark web', host: 'search', path: 'bitcoin%20payment%20dark%20web', ts: Date.now() - 345600000 },
+];
+
+function loadSearchHistory(): HistoryEntry[] {
+  try {
+    const raw = localStorage.getItem(SEARCH_HISTORY_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed as HistoryEntry[];
+    }
+  } catch { /* ignore */ }
+  return INITIAL_SEARCH_HISTORY;
+}
 
 export default function BrowserFrame() {
   const {
@@ -37,6 +59,7 @@ export default function BrowserFrame() {
   const [draft, setDraft] = useState('');
   const [showHistory, setShowHistory] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [searchedHistory, setSearchedHistory] = useState<HistoryEntry[]>(() => loadSearchHistory());
   const inputRef = useRef<HTMLInputElement>(null);
   const historyRef = useRef<HTMLDivElement>(null);
   const settingsRef = useRef<HTMLDivElement>(null);
@@ -56,6 +79,14 @@ export default function BrowserFrame() {
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(searchedHistory));
+  }, [searchedHistory]);
+
+  const deleteSearchedHistory = (urlToDelete: string) => {
+    setSearchedHistory((h) => h.filter((e) => e.url !== urlToDelete));
+  };
 
   const commit = () => {
     const v = draft.trim();
@@ -163,31 +194,35 @@ export default function BrowserFrame() {
               <History size={14} />
             </NavBtn>
             {showHistory && (
-              <div className="absolute right-0 top-10 w-72 bg-ink-850 border border-ink-700 rounded-lg shadow-2xl z-50 py-1">
+              <div className="absolute right-0 top-10 w-72 bg-ink-850 border border-ink-700 rounded-lg shadow-2xl z-50 py-1 max-h-80 overflow-y-auto">
                 <div className="px-3 py-2 text-[11px] text-ink-500 font-mono uppercase tracking-wider border-b border-ink-700">
                   Search History
                 </div>
-                {active.history.length === 0 ? (
+                {active.history.length === 0 && searchedHistory.length === 0 ? (
                   <div className="px-3 py-3 text-xs text-ink-500">No entries yet</div>
                 ) : (
-                  active.history.slice().reverse().map((h, i) => {
-                    const idx = active.history.length - 1 - i;
-                    return (
-                      <button
-                        key={idx}
-                        onClick={() => { setShowHistory(false); void navigate(active.history[idx]?.url ?? 'home'); }}
-                        className={`w-full px-3 py-2 text-left hover:bg-ink-800 flex items-center gap-2 ${
-                          idx === active.cursor ? 'bg-ink-800' : ''
-                        }`}
-                      >
-                        <History size={11} className="text-ink-500 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xs text-ink-200 truncate">{h.displayUrl || h.url}</div>
-                          <div className="text-[10px] text-ink-500 font-mono">{new Date(h.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                        </div>
-                      </button>
-                    );
-                  })
+                  <>
+                    {searchedHistory.map((h, i) => (
+                      <HistoryItem
+                        key={`searched-${i}`}
+                        entry={h}
+                        onNavigate={navigate}
+                        onClose={() => setShowHistory(false)}
+                        onDelete={deleteSearchedHistory}
+                      />
+                    ))}
+                    {active.history.slice().reverse().map((h, i) => {
+                      const idx = active.history.length - 1 - i;
+                      return (
+                        <HistoryItem
+                          key={`nav-${idx}`}
+                          entry={h}
+                          onNavigate={() => { setShowHistory(false); void navigate(h.url); }}
+                          onClose={() => setShowHistory(false)}
+                        />
+                      );
+                    })}
+                  </>
                 )}
               </div>
             )}
@@ -270,5 +305,42 @@ function WinBtn({
     >
       {children}
     </button>
+  );
+}
+
+function HistoryItem({
+  entry,
+  onNavigate,
+  onClose,
+  onDelete,
+}: {
+  entry: HistoryEntry;
+  onNavigate: () => void;
+  onClose: () => void;
+  onDelete?: (url: string) => void;
+}) {
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDelete) {
+      onDelete(entry.url);
+    }
+  };
+
+  return (
+    <div className="w-full px-3 py-2 text-left hover:bg-ink-800 flex items-center gap-2 group">
+      <History size={11} className="text-ink-500 shrink-0" />
+      <div className="flex-1 min-w-0" onClick={() => { onClose(); onNavigate(); }}>
+        <div className="text-xs text-ink-200 truncate">{entry.displayUrl || entry.url}</div>
+        <div className="text-[10px] text-ink-500 font-mono">{new Date(entry.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+      </div>
+      {onDelete && (
+        <button
+          onClick={handleDelete}
+          className="opacity-0 group-hover:opacity-100 text-ink-500 hover:text-danger"
+        >
+          <Trash2 size={11} />
+        </button>
+      )}
+    </div>
   );
 }
