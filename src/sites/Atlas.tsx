@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Sparkles, Send, Trash2, Square, MoreVertical, Play, Pause, SkipForward, Edit2, Download, Clock } from 'lucide-react';
+import { Sparkles, Send, Trash2, Square, MoreVertical, Play, Edit2, Download, Clock } from 'lucide-react';
 import { useBrowser, useCrew } from '../browser/store';
 import type { ChatMessage } from '../browser/types';
 
@@ -321,23 +321,6 @@ export default function Atlas() {
             {thinking && (
               <span className="text-[11px] text-ink-500 font-mono mr-1">thinking…</span>
             )}
-            <button
-              onClick={toggleScript}
-              className={`h-8 px-3 rounded-lg text-xs font-medium inline-flex items-center gap-1.5 ${
-                scriptPlaying ? 'bg-accent text-ink-950' : 'bg-ink-800 text-ink-300 hover:text-ink-100'
-              }`}
-              aria-label={scriptPlaying ? 'Pause script' : 'Play script'}
-            >
-              {scriptPlaying ? <><Pause size={13} /> Pause</> : <><Play size={13} /> Script</>}
-            </button>
-            {scriptMode && (
-              <button
-                onClick={skipScript}
-                className="h-8 px-3 rounded-lg text-xs font-medium bg-ink-800 text-ink-300 hover:text-ink-100 inline-flex items-center gap-1.5"
-              >
-                <SkipForward size={13} /> Skip
-              </button>
-            )}
             <div className="relative">
               <button
                 onClick={() => setShowMoreMenu((m) => !m)}
@@ -371,7 +354,7 @@ export default function Atlas() {
       <div ref={scrollRef} className="flex-1 overflow-y-auto">
         <div className="max-w-3xl mx-auto px-6 py-8 space-y-6">
           {messages.length === 0 && !thinking && !streamed && (
-            <EmptyState onStartScript={startScript} />
+            <EmptyState />
           )}
           {messages.map((m) => (
             <Message key={m.id} m={m} onEdit={startEdit} onDelete={deleteMessage} onNavigate={(url) => void navigate(url)} />
@@ -440,9 +423,9 @@ export default function Atlas() {
                   e.preventDefault();
                   send();
                 }
-                if (e.key === '5' && !input.trim() && !scriptPlaying && !editingId) {
+                if (e.key === ' ' && !input.trim() && !editingId) {
                   e.preventDefault();
-                  if (!scriptMode) {
+                  if (!scriptMode || scriptIndex >= SCRIPTED_CONVERSATION.length) {
                     startScript();
                   } else {
                     toggleScript();
@@ -474,7 +457,7 @@ export default function Atlas() {
           </div>
           <div className="mt-2 text-[11px] text-ink-600 text-center">
             ATLAS generates responses. It may say things it has not been asked.
-            {scriptMode && ' · Press 5 to play/pause script · Press Esc to exit script mode'}
+            {scriptMode && ' · Press Space to play/pause script · Press Esc to exit script mode'}
           </div>
         </div>
       </div>
@@ -483,13 +466,7 @@ export default function Atlas() {
   );
 }
 
-function EmptyState({ onStartScript }: { onStartScript: () => void }) {
-  const prompts = [
-    'Who is Neil?',
-    'What happened at 02:14?',
-    'How many people are in this chat?',
-    'Are you watching me?',
-  ];
+function EmptyState() {
   return (
     <div className="text-center pt-12">
       <div className="mx-auto h-14 w-14 grid place-items-center rounded-2xl bg-ink-850 ring-1 ring-ink-700">
@@ -497,22 +474,6 @@ function EmptyState({ onStartScript }: { onStartScript: () => void }) {
       </div>
       <h1 className="text-2xl font-light text-ink-100 mt-5">Ask ATLAS anything</h1>
       <p className="text-sm text-ink-500 mt-1">Conversation is not stored. The system may not agree to forget it.</p>
-      <div className="mt-8 grid sm:grid-cols-2 gap-2 max-w-lg mx-auto">
-        {prompts.map((p) => (
-          <div
-            key={p}
-            className="text-left px-3 py-2.5 rounded-lg bg-ink-900 border border-ink-800 text-sm text-ink-300 hover:border-ink-700 hover:text-ink-100"
-          >
-            {p}
-          </div>
-        ))}
-      </div>
-      <button
-        onClick={onStartScript}
-        className="mt-8 px-6 py-3 rounded-full bg-accent text-ink-950 text-sm font-medium hover:opacity-90 inline-flex items-center gap-2"
-      >
-        <Play size={16} /> Play Scripted Conversation
-      </button>
     </div>
   );
 }
