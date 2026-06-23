@@ -27,71 +27,69 @@ interface EditRecord {
 
 const INITIAL_SECTIONS: Section[] = [
   {
-    id: 'overview',
-    title: 'Overview',
+    id: 'early-life',
+    title: 'Early Life and Education',
     open: true,
     body: [
-      'Neil (b. unknown) is the documentary subject of the Veil broadcast of the eastern corridor incident. He is described in surviving records as a quiet observer, present at several otherwise unrelated events recorded on the night in question.',
-      'No verified photograph of Neil exists. The image associated with this article is a reconstruction compiled from witness descriptions and the corridor’s surviving frames.',
+      'Neil Sharma was born and raised in Delhi. He completed his schooling at Sigma Public School, where he became notorious for running an anonymous confessions page on social media. The page allegedly exposed private secrets of several students, which led to significant reputational damage and emotional distress for many of his peers. He is currently pursuing a bachelor\'s degree in engineering from SIIT, Delhi.',
     ],
   },
   {
-    id: 'background',
-    title: 'Background',
+    id: 'football',
+    title: 'Football Career',
     open: true,
     body: [
-      'Reliable biographical details are scarce. Accounts place Neil in the eastern corridor shortly before the broadcast began. Witnesses describe a man of average build, nondescript clothing, and an unusual stillness.',
-      'A single employment record, since flagged for review, listed him as “on-site associate, indefinite term.” The issuing institution has not been identified.',
+      'Sharma plays as an attacker for his college football team. He was selected for the team in 2024 after competitive trials. His selection brought him recognition among his peers and faculty, though it also created tensions with some of his close friends who were not selected.',
     ],
   },
   {
-    id: 'incident',
-    title: 'The Corridor Incident',
-    open: true,
-    body: [
-      'On the night of the broadcast, Neil was observed by three independent witnesses walking the length of the eastern corridor at 02:14 local time. The corridor lights dimmed twice during his transit.',
-      'The VEIL broadcast began six minutes later. It is not established whether Neil was aware of the broadcast, or whether the broadcast was aware of him.',
-    ],
-  },
-  {
-    id: 'aftermath',
-    title: 'Aftermath & Sightings',
+    id: 'family',
+    title: 'Family',
     open: false,
     body: [
-      'Following the incident, the corridor was sealed for review. Neil was not among the individuals recovered from the site.',
-      'Subsequent unverified sightings have been reported in three cities. None have been corroborated. This section is updated as new reports are received.',
+      'Neil Sharma lives with his parents and elder brother in Green View Apartments, Delhi. His family has been supportive of his education and football aspirations, though recent events have reportedly put significant strain on their household relationships.',
     ],
   },
   {
-    id: 'see-also',
-    title: 'See Also',
+    id: 'personal',
+    title: 'Personal Life',
     open: false,
-    body: ['Veil Broadcast (veil.onion/live)', 'The Corridor Incident (wiki.local/corridor)', 'ATLAS Conversational Log'],
+    body: [
+      'Sharma was in a relationship with Suyanshi, a fellow student at SIIT. Their relationship was often visible in college social circles. However, it reportedly ended due to personal issues.',
+    ],
+  },
+  {
+    id: 'later',
+    title: 'Later Life',
+    open: false,
+    body: [
+      'His girlfriend broke up with him after discovering that he was cheating on her with her best friend. This public breakup significantly affected his social standing and mental state according to various online accounts and updates.',
+    ],
   },
 ];
 
 const INITIAL_HISTORY: EditRecord[] = [
-  { user: 'corridor_archivist', time: '02:14:08', summary: 'Added figure to overview', bytes: 412 },
-  { user: 'anonymous', time: '02:09:51', summary: '↺ Reverted edit by anonymous', bytes: -88 },
-  { user: 'anonymous', time: '02:09:33', summary: 'Updated aftermath section', bytes: 142 },
-  { user: 'mod_witness', time: '01:58:02', summary: 'Restored verified wording', bytes: 0 },
-  { user: 'corridor_archivist', time: '01:50:14', summary: 'Created article', bytes: 1240 },
+  { user: 'atlas_scraper', time: '14:32:08', summary: 'Added football career details', bytes: 412 },
+  { user: 'siit_alum', time: '14:28:51', summary: 'Added relationship status', bytes: 156 },
+  { user: 'delhi_wiki', time: '14:15:33', summary: 'Created biographical article', bytes: 1240 },
+  { user: 'anonymous', time: '14:10:02', summary: 'Added early life section', bytes: 890 },
+  { user: 'corridor_archivist', time: '01:50:14', summary: 'Created redirect to old article', bytes: 120 },
 ];
 
 // Horror payload: new paragraphs that appear live
 const HORROR_PARAS: string[] = [
-  'A fourth witness has since come forward. Their account is consistent with the first three, with one addition: Neil was looking up.',
-  'Reviewers note that the corridor lights did not dim on their own. They were dimmed.',
-  'The reconstruction image has been updated 47 times. Each version is slightly closer to the witness accounts. None is identical to the previous.',
-  'It is no longer accurate to say that Neil was “present” at the incident. The article has been amended to reflect this.',
+  'The confessions page was not anonymous. IP logs recovered by an independent researcher identify the administrator.',
+  'A deleted tweet from 2024 shows Sharma acknowledging the page\'s impact on mental health.',
+  'The engineering department has not commented on whether Sharma\'s behavior will affect his enrollment.',
+  'Three former classmates have since confirmed that the confessions page operated for 18 months before deletion.',
 ];
 
 const REFS = [
-  { n: 1, text: 'Witness A, recorded statement, 02:31 local. Transcript withheld pending review.', url: 'archive.local/wh/wa' },
-  { n: 2, text: 'Corridor lighting log, eastern wing, 02:14–02:20.', url: 'archive.local/lg/ew' },
-  { n: 3, text: 'VEIL broadcast metadata. Source unverified.', url: 'veil.onion/live' },
+  { n: 1, text: 'Sigma Public School yearbook, 2023. Page 47.', url: 'archive.local/edu/sps' },
+  { n: 2, text: 'SIIT Delhi student records, Department of Engineering.', url: 'archive.local/edu/siit' },
+  { n: 3, text: 'SIIT Delhi football team roster, 2024 season.', url: 'archive.local/spt/siit-fc' },
   { n: 4, text: 'ATLAS conversational log, session 0047. Quoted under fair use.', url: 'atlas.chat' },
-  { n: 5, text: 'Internal review memo #2E3. Restricted.', url: 'internal.local/2e3' },
+  { n: 5, text: 'Deleted social media archive, retrieved 2026.', url: 'archive.local/soc/neil' },
 ];
 
 export default function Wiki() {
@@ -99,7 +97,7 @@ export default function Wiki() {
   const [history] = useState<EditRecord[]>(INITIAL_HISTORY);
   const [tab, setTab] = useState<'article' | 'history'>('article');
   const [newPara, setNewPara] = useState<{ id: number; text: string } | null>(null);
-  const [editCount, setEditCount] = useState(47);
+  const [editCount, setEditCount] = useState(5);
   const [activeRef, setActiveRef] = useState<number | null>(null);
 
   // hidden live update on article load — appears after a delay
@@ -187,7 +185,7 @@ export default function Wiki() {
           {/* Title block */}
           <div className="grid md:grid-cols-[1fr_240px] gap-8">
             <div>
-              <h1 className="font-serif text-4xl text-ink-50 mb-1">Neil</h1>
+               <h1 className="font-serif text-4xl text-ink-50 mb-1">Neil Sharma</h1>
               <p className="text-sm text-ink-500 mb-5">
                 From Veilpedia, the free encyclopedia
               </p>
@@ -212,7 +210,7 @@ export default function Wiki() {
                         <p key={i}>
                           {p}
                           {/* Insert horror paragraph inside the incident section */}
-                          {sec.id === 'aftermath' && i === sec.body.length - 1 && newPara && (
+                           {sec.id === 'later' && i === sec.body.length - 1 && newPara && (
                             <span
                               key={newPara.id}
                               className="block mt-3 text-ink-300 italic"
@@ -269,24 +267,23 @@ export default function Wiki() {
             <aside>
               <div className="border border-ink-800 rounded-lg overflow-hidden bg-ink-900 text-sm">
                 <div className="bg-ink-850 px-3 py-2 text-center font-serif text-base text-ink-50 border-b border-ink-800">
-                  Neil
+                  Neil Sharma
                 </div>
                 <div className="aspect-square bg-ink-950 grid place-items-center relative overflow-hidden">
-                  {/* Reconstruction silhouette */}
-                  <svg viewBox="0 0 100 120" className="w-2/3 text-ink-600">
-                    <ellipse cx="50" cy="28" rx="16" ry="20" fill="currentColor" />
-                    <path d="M30 120 Q30 60 50 60 Q70 60 70 120 Z" fill="currentColor" />
-                  </svg>
+                  {/* Placeholder avatar */}
+                  <div className="h-16 w-16 rounded-full bg-ink-700 grid place-items-center text-xl font-serif text-ink-300">
+                    NS
+                  </div>
                   <div className="absolute bottom-0 left-0 right-0 bg-ink-950/80 backdrop-blur px-2 py-1 text-[10px] text-center text-ink-400">
-                    Reconstruction · composite
+                    Student · Athlete
                   </div>
                 </div>
                 <dl className="px-3 py-3 space-y-2 text-[13px]">
                   {[
-                    ['Born', 'unknown'],
-                    ['Status', 'Disputed'],
-                    ['Known for', 'Corridor Incident'],
-                    ['Last seen', '02:14, eastern corridor'],
+                    ['Born', '2005'],
+                    ['Status', 'Student'],
+                    ['Known for', 'Confessions page, Football'],
+                    ['Location', 'Delhi, India'],
                   ].map(([k, v]) => (
                     <div key={k} className="grid grid-cols-[80px_1fr] gap-2">
                       <dt className="text-ink-500">{k}</dt>
@@ -321,7 +318,7 @@ function HistoryView({ history, count }: { history: EditRecord[]; count: number 
         <h1 className="font-serif text-2xl text-ink-50">Revision history</h1>
       </div>
       <p className="text-sm text-ink-500 mb-6">
-        “Neil” — {count} edits · viewing latest 5 of {count}
+        "Neil Sharma" — {count} edits · viewing latest 5 of {count}
       </p>
 
       <div className="space-y-3">
