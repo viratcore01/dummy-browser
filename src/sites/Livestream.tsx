@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pause, Play, Maximize, Volume2, VolumeX, Circle, Users, Send } from 'lucide-react';
-import { useCrew } from '../browser/useBrowser';
+import { Users, Send, Maximize, Volume2, VolumeX, Circle, Pause, Play } from 'lucide-react';
+import { useBrowser, useCrew } from '../browser/useBrowser';
 
 interface ChatLine {
   id: number;
@@ -55,6 +55,7 @@ export default function Livestream() {
   const [input, setInput] = useState('');
   const chatRef = useRef<HTMLDivElement>(null);
   const vidRef = useRef<HTMLDivElement>(null);
+  const { navigate } = useBrowser();
 
   // auto-scroll chat
   useEffect(() => {
@@ -221,7 +222,15 @@ export default function Livestream() {
         <div className="flex flex-col bg-ink-900 border-l border-ink-800 min-h-0">
           <div className="h-11 px-4 border-b border-ink-800 flex items-center justify-between">
             <span className="text-sm font-medium text-ink-100">Live Chat</span>
-            <span className="text-[11px] text-ink-500 font-mono">{chat.length} messages</span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => void navigate('community.local')}
+                className="text-[11px] text-accent hover:text-accent/80 font-mono"
+              >
+                Community
+              </button>
+              <span className="text-[11px] text-ink-500 font-mono">{chat.length} messages</span>
+            </div>
           </div>
           <div ref={chatRef} className="flex-1 overflow-y-auto px-3 py-2 space-y-2 no-scrollbar">
             {chat.map((m) => (

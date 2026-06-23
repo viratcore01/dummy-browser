@@ -4,7 +4,9 @@ export type Host =
   | 'veil'
   | 'atlas'
   | 'search'
-  | 'error';
+  | 'error'
+  | 'community'
+  | 'profile';
 
 export interface ParsedUrl {
   raw: string;

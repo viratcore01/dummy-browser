@@ -5,6 +5,8 @@ const KNOWN: Record<string, Host> = {
   'veil.onion': 'veil',
   'atlas.chat': 'atlas',
   'browse.search': 'search',
+  'community.local': 'community',
+  'profile.local': 'profile',
 };
 
 export const HOST_TITLES: Record<Host, string> = {
@@ -14,6 +16,8 @@ export const HOST_TITLES: Record<Host, string> = {
   atlas: 'ATLAS',
   search: 'Browse',
   error: 'Page Unavailable',
+  community: 'Community',
+  profile: 'Profile',
 };
 
 export const HOST_FAVICONS: Record<Host, string> = {
@@ -23,6 +27,8 @@ export const HOST_FAVICONS: Record<Host, string> = {
   atlas: 'sparkles',
   search: 'search',
   error: 'triangle-alert',
+  community: 'users',
+  profile: 'user',
 };
 
 export function parseUrl(input: string): ParsedUrl {
