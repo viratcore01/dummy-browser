@@ -99,6 +99,25 @@ export default function Atlas() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
   }, [messages]);
 
+  useEffect(() => {
+    const handler = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY) {
+        if (e.newValue) {
+          try {
+            const parsed = JSON.parse(e.newValue);
+            if (Array.isArray(parsed)) setMessages(parsed as ChatMessage[]);
+          } catch {
+            /* ignore */
+          }
+        } else if (e.newValue === null) {
+          setMessages([]);
+        }
+      }
+    };
+    window.addEventListener('storage', handler);
+    return () => window.removeEventListener('storage', handler);
+  }, []);
+
   const stopStream = () => {
     if (streamTimer.current) {
       clearInterval(streamTimer.current);
@@ -183,6 +202,7 @@ export default function Atlas() {
   const clear = () => {
     stopStream();
     setMessages([]);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
     setThinking(false);
     setStreamed('');
     scriptIndexRef.current = 0;
@@ -385,7 +405,6 @@ export default function Atlas() {
                 }
               }}
               rows={1}
-              placeholder="Press 4 for user · 5 for AI"
               className="flex-1 bg-transparent outline-none resize-none text-[15px] text-ink-100 placeholder:text-ink-600 max-h-32"
             />
             {(thinking || streamed) ? (

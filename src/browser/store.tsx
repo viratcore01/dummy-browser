@@ -11,10 +11,30 @@ import type { HistoryEntry, Tab, ParsedUrl } from './types';
 import { HOST_FAVICONS, HOST_TITLES, parseUrl } from './urls';
 
 const STORAGE_KEY = 'veil.browser.v1';
+const QUICK_LINKS_KEY = 'veil.browser.quickLinks.v1';
 
 interface SavedState {
   tabs: Tab[];
   activeId: string;
+}
+
+interface QuickLinksState {
+  veilpedia: boolean;
+  veilLive: boolean;
+  atlas: boolean;
+}
+
+function loadQuickLinks(): QuickLinksState {
+  try {
+    const raw = localStorage.getItem(QUICK_LINKS_KEY);
+    if (raw) {
+      const s = JSON.parse(raw) as QuickLinksState;
+      return { veilpedia: true, veilLive: true, atlas: true, ...s };
+    }
+  } catch {
+    /* ignore */
+  }
+  return { veilpedia: true, veilLive: true, atlas: true };
 }
 
 function newTab(initial: 'home' | ParsedUrl = 'home'): Tab {
@@ -70,12 +90,16 @@ export interface BrowserContextValue {
   setLoading: (b: boolean) => void;
   broadcast: (channel: string, payload?: unknown) => void;
   subscribe: (channel: string, cb: (p: unknown) => void) => () => void;
+  quickLinksVisible: QuickLinksState;
+  toggleQuickLink: (key: keyof QuickLinksState) => void;
+  isQuickLinkEnabled: (key: keyof QuickLinksState) => boolean;
 }
 
 export const Ctx = createContext<BrowserContextValue | null>(null);
 
 export function BrowserProvider({ children }: { children: ReactNode }) {
   const [{ tabs, activeId }, setState] = useState<SavedState>(load);
+  const [quickLinksVisible, setQuickLinksVisible] = useState<QuickLinksState>(loadQuickLinks);
   const channels = useRef<Map<string, Set<(p: unknown) => void>>>(new Map());
   const navDelays = useRef<Map<string, number>>(new Map());
   const pendingReload = useRef<Set<string>>(new Set());
@@ -83,6 +107,18 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ tabs, activeId }));
   }, [tabs, activeId]);
+
+  useEffect(() => {
+    localStorage.setItem(QUICK_LINKS_KEY, JSON.stringify(quickLinksVisible));
+  }, [quickLinksVisible]);
+
+  const toggleQuickLink = useCallback((key: keyof QuickLinksState) => {
+    setQuickLinksVisible((s) => ({ ...s, [key]: !s[key] }));
+  }, []);
+
+  const isQuickLinkEnabled = useCallback((key: keyof QuickLinksState) => {
+    return quickLinksVisible[key];
+  }, [quickLinksVisible]);
 
   const patchTab = useCallback((id: string, fn: (t: Tab) => Tab) => {
     setState((s) => ({
@@ -219,6 +255,9 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
     setLoading,
     broadcast,
     subscribe,
+    quickLinksVisible,
+    toggleQuickLink,
+    isQuickLinkEnabled,
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

@@ -119,6 +119,14 @@ export default function Livestream() {
   // crew: 4 → bump viewers
   useCrew('veil:viewers', () => setViewers((v) => v + Math.floor(Math.random() * 20 + 8)));
 
+  // crew: 7 → inject chat message
+  useCrew('livestream:inject', (payload: { text: string; user: string; color: string }) => {
+    setChat((c) => [
+      ...c.slice(-40),
+      { id: Date.now() + Math.random(), user: payload.user, text: payload.text, color: payload.color },
+    ]);
+  });
+
   const send = () => {
     const v = input.trim();
     if (!v) return;

@@ -1,15 +1,15 @@
 import { useState } from 'react';
-import { Search, Lock, Globe } from 'lucide-react';
+import { Search, Globe, BookOpen, Radio, Sparkles } from 'lucide-react';
 import { useBrowser } from '../browser/useBrowser';
 
 const QUICK = [
-  { label: 'Veilpedia', url: 'wiki.local/neil', hint: 'wiki.local/neil' },
-  { label: 'VEIL Live', url: 'veil.onion/live', hint: 'veil.onion/live' },
-  { label: 'ATLAS', url: 'atlas.chat', hint: 'atlas.chat' },
+  { label: 'Veilpedia', url: 'wiki.local/neil', hint: 'wiki.local/neil', key: 'veilpedia' as const, icon: BookOpen },
+  { label: 'VEIL Live', url: 'veil.onion/live', hint: 'veil.onion/live', key: 'veilLive' as const, icon: Radio },
+  { label: 'ATLAS', url: 'atlas.chat', hint: 'atlas.chat', key: 'atlas' as const, icon: Sparkles },
 ];
 
 export default function HomePage() {
-  const { navigate } = useBrowser();
+  const { navigate, quickLinksVisible } = useBrowser();
   const [q, setQ] = useState('');
 
   const submit = (e?: React.FormEvent) => {
@@ -58,13 +58,13 @@ export default function HomePage() {
         </form>
 
         <div className="mt-10 flex flex-wrap gap-2 justify-center">
-          {QUICK.map((s) => (
+          {QUICK.filter((s) => quickLinksVisible[s.key]).map((s) => (
             <button
               key={s.url}
               onClick={() => void navigate(s.url)}
               className="group flex items-center gap-2 px-3.5 h-9 rounded-full bg-ink-850 hover:bg-ink-800 ring-1 ring-ink-700 hover:ring-ink-600 transition"
             >
-              <Lock size={11} className="text-accent" />
+              <s.icon size={11} className="text-accent" />
               <span className="text-sm text-ink-200 group-hover:text-ink-50">{s.label}</span>
               <span className="text-[11px] text-ink-500 font-mono">{s.hint}</span>
             </button>

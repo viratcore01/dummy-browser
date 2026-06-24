@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useBrowser } from './useBrowser';
+import { useBrowser, useActiveHost } from './useBrowser';
 
 /**
  * Hidden keyboard controls for the crew.
@@ -11,14 +11,15 @@ import { useBrowser } from './useBrowser';
  *  4 → next user line in ATLAS script
  *  5 → next AI line in ATLAS script
  *  6 → remote "user" in ATLAS OR profile gone on community
- *  7 → drop a notification
+ *  7 → inject chat message ($20 open her head)
  *  8 → simulate fake network lag spike on current tab
  *  9 → someone posts ATLAS link in community chat
  *  0 → blackout the screen
  *  Esc → release blackout
  */
 export default function CrewControls() {
-  const { navigate, broadcast, setLoading, active } = useBrowser();
+  const { navigate, broadcast, setLoading } = useBrowser();
+  const activeHost = useActiveHost();
   const [blackout, setBlackout] = useState(false);
   const [showHint, setShowHint] = useState(false);
 
@@ -37,38 +38,35 @@ useEffect(() => {
          case '1':
            if (editable) return;
            // if on community page, trigger profile gone
-           if (active?.host === 'community') {
-             broadcast('veil:profile-gone', {});
+if (activeHost === 'community') {
+              broadcast('veil:profile-gone', {});
            } else {
              void navigate('wiki.local/neil', { titleOverride: 'Veilpedia — Neil' });
              broadcast('wiki:open', {});
            }
            break;
-         case '2':
-           broadcast('wiki:add', {});
-           fire('notify', { title: 'Article updated', body: 'New paragraph added to "Neil".', from: 'veilpedia' });
-           break;
+case '2':
+            broadcast('wiki:add', {});
+            break;
          case '3':
            if (editable) return;
            void navigate('veil.onion/live', { titleOverride: 'VEIL // LIVE' });
            break;
-         case '4':
-           broadcast('atlas:user', {});
-           fire('notify', { title: 'ATLAS', body: 'User line injected', from: 'atlas.chat' });
-           break;
-         case '5':
-           broadcast('atlas:ai', {});
-           fire('notify', { title: 'ATLAS', body: 'ATLAS is composing a reply…', from: 'atlas.chat' });
-           break;
+          case '4':
+            broadcast('atlas:user', {});
+            break;
+case '5':
+            broadcast('atlas:ai', {});
+            break;
 case '6':
           if (editable) return;
           // Navigate to community and show profile gone
           void navigate('community.local', { titleOverride: 'Community' });
           setTimeout(() => broadcast('veil:profile-gone', {}), 100);
           break;
-         case '7':
-           fire('notify', { title: 'System', body: 'An unknown process is responding.', from: 'system' });
-           break;
+case '7':
+            broadcast('livestream:inject', { text: '$20 open her head', user: 'anon', color: 'text-ink-300' });
+            break;
          case '8':
            if (editable) return;
            setLoading(true);
@@ -86,7 +84,7 @@ case '6':
      };
      window.addEventListener('keydown', handler);
      return () => window.removeEventListener('keydown', handler);
-   }, [navigate, broadcast, setLoading, blackout, active]);
+   }, [navigate, broadcast, setLoading, blackout, activeHost]);
 
   // reveal controls briefly on first load (for crew orientation, invisible to audience)
   useEffect(() => {
@@ -107,7 +105,7 @@ case '6':
       )}
       {showHint && (
         <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-[90] px-4 py-2 rounded-lg bg-ink-850/80 backdrop-blur text-[11px] text-ink-400 font-mono border border-ink-700">
-          crew: <span className="text-accent">1</span> wiki · <span className="text-accent">2</span> article · <span className="text-accent">3</span> live · <span className="text-accent">6</span> profile gone · <span className="text-accent">9</span> atlas link · <span className="text-accent">0</span> blackout
+          crew: <span className="text-accent">1</span> wiki · <span className="text-accent">2</span> article · <span className="text-accent">3</span> live · <span className="text-accent">7</span> inject · <span className="text-accent">6</span> profile gone · <span className="text-accent">9</span> atlas link · <span className="text-accent">0</span> blackout
         </div>
       )}
     </>

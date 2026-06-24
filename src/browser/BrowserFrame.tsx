@@ -12,6 +12,7 @@ import {
   History,
   Settings2,
   Trash2,
+  Check,
 } from 'lucide-react';
 import { useBrowser, useActiveEntry } from './useBrowser';
 import Favicon from './Favicon';
@@ -28,17 +29,6 @@ const INITIAL_SEARCH_HISTORY: HistoryEntry[] = [
   { url: 'bitcoin payment dark web', displayUrl: 'browse://bitcoin payment dark web', host: 'search', path: 'bitcoin%20payment%20dark%20web', ts: Date.now() - 345600000 },
 ];
 
-function loadSearchHistory(): HistoryEntry[] {
-  try {
-    const raw = localStorage.getItem(SEARCH_HISTORY_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed as HistoryEntry[];
-    }
-  } catch { /* ignore */ }
-  return INITIAL_SEARCH_HISTORY;
-}
-
 export default function BrowserFrame() {
   const {
     tabs,
@@ -53,16 +43,21 @@ export default function BrowserFrame() {
     reload,
     canBack,
     canForward,
+    quickLinksVisible,
+    toggleQuickLink,
   } = useBrowser();
   const entry = useActiveEntry();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
   const [showHistory, setShowHistory] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [searchedHistory, setSearchedHistory] = useState<HistoryEntry[]>(() => loadSearchHistory());
+  const [showPrivacySettings, setShowPrivacySettings] = useState(false);
+  const [deletedSearches, setDeletedSearches] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const historyRef = useRef<HTMLDivElement>(null);
   const settingsRef = useRef<HTMLDivElement>(null);
+
+  const searchedHistory = INITIAL_SEARCH_HISTORY.filter((h) => !deletedSearches.includes(h.url));
 
   const displayUrl = entry?.displayUrl ?? 'browse://';
   const isSecure = entry?.host === 'wiki' || entry?.host === 'atlas' || entry?.host === 'home' || entry?.host === 'search';
@@ -80,12 +75,8 @@ export default function BrowserFrame() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(searchedHistory));
-  }, [searchedHistory]);
-
   const deleteSearchedHistory = (urlToDelete: string) => {
-    setSearchedHistory((h) => h.filter((e) => e.url !== urlToDelete));
+    setDeletedSearches((d) => [...d, urlToDelete]);
   };
 
   const commit = () => {
@@ -235,7 +226,8 @@ export default function BrowserFrame() {
               <div className="absolute right-0 top-10 w-52 bg-ink-850 border border-ink-700 rounded-lg shadow-2xl z-50 py-1">
                 <button onClick={() => { setEditing(true); setShowSettings(false); }} className="w-full px-3 py-2 text-left text-sm text-ink-200 hover:bg-ink-800 hover:text-ink-50">Edit URL</button>
                 <button onClick={() => { setShowSettings(false); }} className="w-full px-3 py-2 text-left text-sm text-ink-200 hover:bg-ink-800 hover:text-ink-50">Clear History</button>
-                <button onClick={() => { setShowSettings(false); }} className="w-full px-3 py-2 text-left text-sm text-ink-200 hover:bg-ink-800 hover:text-ink-50">Privacy Settings</button>
+                <div className="border-t border-ink-700 my-1"></div>
+                <button onClick={() => { setShowPrivacySettings(true); setShowSettings(false); }} className="w-full px-3 py-2 text-left text-sm text-accent hover:bg-ink-800">Privacy Settings</button>
               </div>
             )}
           </div>
@@ -259,6 +251,24 @@ export default function BrowserFrame() {
           <PageRouter />
         </div>
       </div>
+
+      {showPrivacySettings && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setShowPrivacySettings(false)}>
+          <div className="bg-ink-850 border border-ink-700 rounded-lg shadow-2xl w-80 p-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-medium text-ink-100">Privacy Settings</h3>
+              <button onClick={() => setShowPrivacySettings(false)} className="text-ink-500 hover:text-ink-100">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="space-y-2">
+              <ToggleItem label="Veilpedia" checked={quickLinksVisible.veilpedia} onChange={() => toggleQuickLink('veilpedia')} />
+              <ToggleItem label="VEIL Live" checked={quickLinksVisible.veilLive} onChange={() => toggleQuickLink('veilLive')} />
+              <ToggleItem label="ATLAS" checked={quickLinksVisible.atlas} onChange={() => toggleQuickLink('atlas')} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -342,5 +352,14 @@ function HistoryItem({
         </button>
       )}
     </div>
+  );
+}
+
+function ToggleItem({ label, checked, onChange }: { label: string; checked: boolean; onChange: () => void }) {
+  return (
+    <button onClick={onChange} className="w-full flex items-center justify-between px-3 py-2 text-sm text-ink-200 hover:bg-ink-800 rounded">
+      <span>{label}</span>
+      {checked && <Check size={14} className="text-accent" />}
+    </button>
   );
 }
