@@ -1,62 +1,150 @@
-import { useMemo, useState } from 'react';
-import { Search as SearchIcon, ArrowRight, ExternalLink } from 'lucide-react';
-import { useActiveEntry, useBrowser } from '../browser/store';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Search as SearchIcon, ArrowRight, ExternalLink, Clock3, History, X, RotateCcw } from 'lucide-react';
+import { useActiveEntry, useBrowser, useCrew } from '../browser/store';
 
 interface Result {
   title: string;
   url: string;
   nav: string;
   snippet: string;
-  host: 'wiki' | 'veil' | 'atlas' | 'error';
+}
+
+interface SearchHistoryItem {
+  id: string;
+  query: string;
+  ts: number;
+}
+
+const HISTORY_KEY = 'veil.search.history.v1';
+const HISTORY_BACKUP_KEY = 'veil.search.history.backup.v1';
+
+function makeDefaultHistory(): SearchHistoryItem[] {
+  const now = Date.now();
+  return [
+    { id: 'h1', query: 'buy drug ...', ts: now - 1000 * 60 * 52 },
+    { id: 'h2', query: 'suyanshi dm ...', ts: now - 1000 * 60 * 41 },
+    { id: 'h3', query: 'steroids ...', ts: now - 1000 * 60 * 29 },
+    { id: 'h4', query: 'dark web violence ...', ts: now - 1000 * 60 * 12 },
+  ];
+}
+
+function loadHistory(): SearchHistoryItem[] {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (raw) return JSON.parse(raw) as SearchHistoryItem[];
+  } catch {
+    /* ignore */
+  }
+  return makeDefaultHistory();
+}
+
+function loadBackup(): SearchHistoryItem[] | null {
+  try {
+    const raw = localStorage.getItem(HISTORY_BACKUP_KEY);
+    if (raw) return JSON.parse(raw) as SearchHistoryItem[];
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+function saveHistory(items: SearchHistoryItem[]) {
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(items));
+}
+
+function saveBackup(items: SearchHistoryItem[]) {
+  localStorage.setItem(HISTORY_BACKUP_KEY, JSON.stringify(items));
+}
+
+function normalizeQuery(value: string) {
+  return value.toLowerCase().replace(/\s+/g, ' ').trim();
 }
 
 const CORPUS: Result[] = [
   {
-    title: 'Neil (disambiguation) — Veilpedia',
-    url: 'wiki.local/neil',
-    nav: 'wiki.local › neil',
+    title: 'Neil Sharma — Wikipedia',
+    url: 'en.wikipedia.org/wiki/Neil_Sharma',
+    nav: 'en.wikipedia.org › wiki › Neil_Sharma',
     snippet:
-      'Neil is a given name of Irish/Scottish origin meaning "champion" or "cloud". This article covers the documentary subject of the same name, last seen in the eastern corridor on the night of …',
-    host: 'wiki',
+      'Neil Sharma (born March 15, 2003) is an Indian computer science student currently enrolled in the B.Tech programme at SIIT, Delhi...',
   },
   {
-    title: 'LIVE — VEIL Broadcast',
-    url: 'veil.onion/live',
-    nav: 'veil.onion › live',
+    title: 'Omen - AI Chat',
+    url: 'omen.chat',
+    nav: 'omen.chat',
     snippet:
-      'Anonymous relay broadcast. Viewer count fluctuates. Do not interact with the chat. The stream continues regardless of whether you are watching.',
-    host: 'veil',
+      'Omen is an autonomous conversational intelligence. It knows your name, your address, and your secrets. Talk to Omen. Or don\'t. It already knows what you\'ll say.',
   },
   {
-    title: 'ATLAS — Autonomous Reasoning System',
-    url: 'atlas.chat',
-    nav: 'atlas.chat',
-    snippet: 'Ask anything. ATLAS is an experimental conversational system hosted on the local mesh. Responses are generated and may be delayed by network conditions.',
-    host: 'atlas',
+    title: 'DarkWeb Violence — Live Feed',
+    url: 'darkweb-violence.onion/live',
+    nav: 'darkweb-violence.onion › live',
+    snippet:
+      'Anonymous relay broadcast via .onion hidden service. Viewer count fluctuates. Warning: Content may be disturbing. Connection is not encrypted on your end.',
   },
   {
-    title: 'Neil — Corridor Records',
-    url: 'archive.local/neil/log',
-    nav: 'archive.local › neil › log',
+    title: 'SIIT Admission Records — 2021 Batch',
+    url: 'siit.ac.in/admissions/2021',
+    nav: 'siit.ac.in › admissions › 2021',
     snippet:
-      'Last known transit through the eastern corridor. Entry timestamped but unverifiable. Subsequent entries have been amended by parties unknown.',
-    host: 'error',
+      'Admission records for the 2021 batch, including B.Tech Computer Science and Engineering at SIIT, Delhi. Search by name or application number...',
   },
   {
-    title: 'The Corridor Incident — Veilpedia',
-    url: 'wiki.local/corridor',
-    nav: 'wiki.local › corridor',
+    title: 'Suyanshi Patel — Social Profile',
+    url: 'social.network/suyanshi_p',
+    nav: 'social.network › suyanshi_p',
     snippet:
-      'The Corridor Incident refers to a sequence of events recorded on the night of the broadcast. Accounts differ. The official article has been edited 47 times in the last hour.',
-    host: 'wiki',
+      'Profile page for Suyanshi Patel. Last active 47 minutes ago. 423 followers. Bio: "living my best life 💕"',
   },
 ];
 
 export default function Search() {
   const entry = useActiveEntry();
   const { navigate } = useBrowser();
+  const historyBackupRef = useRef<SearchHistoryItem[] | null>(loadBackup());
+  const historyClearCountRef = useRef(0);
   const initial = decodeURIComponent(entry?.path || '');
   const [q, setQ] = useState(initial);
+  const [historyItems, setHistoryItems] = useState<SearchHistoryItem[]>(loadHistory);
+  const [historyOpen, setHistoryOpen] = useState(false);
+
+  const recordHistory = useCallback((query: string) => {
+    const clean = query.trim();
+    if (!clean) return;
+    const ts = Date.now();
+    setHistoryItems((current) => {
+      const normalized = normalizeQuery(clean);
+      const next = [
+        { id: String(ts), query: clean, ts },
+        ...current.filter((item) => normalizeQuery(item.query) !== normalized),
+      ].slice(0, 12);
+      return next;
+    });
+    setHistoryOpen(true);
+  }, []);
+
+  useEffect(() => {
+    saveHistory(historyItems);
+  }, [historyItems]);
+
+  useCrew('search:toggle-history', () => {
+    setHistoryOpen((v) => !v);
+  });
+
+  useCrew('search:clear-history', () => {
+    historyBackupRef.current = historyItems.length ? historyItems : makeDefaultHistory();
+    saveBackup(historyBackupRef.current);
+    historyClearCountRef.current += 1;
+    setHistoryItems([]);
+    setHistoryOpen(true);
+  });
+
+  useCrew('search:restore-history', () => {
+    const restored = historyBackupRef.current?.length ? historyBackupRef.current : loadBackup() ?? makeDefaultHistory();
+    setHistoryItems(restored);
+    saveHistory(restored);
+    setHistoryOpen(true);
+  });
 
   const results = useMemo(() => {
     const term = (q || initial).toLowerCase();
@@ -79,7 +167,10 @@ export default function Search() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && q.trim()) void navigate(q);
+              if (e.key === 'Enter' && q.trim()) {
+                recordHistory(q);
+                void navigate(q);
+              }
             }}
             className="flex-1 bg-transparent outline-none text-sm text-ink-50"
             autoFocus
@@ -97,7 +188,10 @@ export default function Search() {
             <div key={r.url} className="group">
               <div className="text-[11px] text-ink-500 font-mono mb-0.5">{r.nav}</div>
               <button
-                onClick={() => void navigate(r.url)}
+                onClick={() => {
+                  recordHistory(r.title);
+                  void navigate(r.url);
+                }}
                 className="text-xl text-ink-100 group-hover:text-accent transition-colors text-left flex items-start gap-1"
               >
                 {r.title}
@@ -110,7 +204,7 @@ export default function Search() {
 
         <div className="mt-10 pt-6 border-t border-ink-800 flex items-center gap-3 text-xs text-ink-400">
           <span>Related searches:</span>
-          {['who is neil', 'corridor incident', 'veil.onion/live', 'atlas.chat'].map((s) => (
+          {['neil sharma', 'omen chat', 'darkweb violence live', 'suyanshi patel'].map((s) => (
             <button
               key={s}
               onClick={() => void navigate(s)}
@@ -121,6 +215,65 @@ export default function Search() {
           ))}
         </div>
       </div>
+
+      {historyOpen && (
+        <div className="fixed right-4 top-14 z-40 w-[360px] max-w-[calc(100vw-2rem)] bg-[#0c0c0f]/95 backdrop-blur-xl border border-ink-800 shadow-2xl rounded-2xl overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-ink-800 bg-ink-950/70">
+            <div className="flex items-center gap-2 text-ink-100 font-medium">
+              <History size={16} className="text-accent" />
+              Browser history
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => {
+                  const snapshot = historyItems.length ? historyItems : makeDefaultHistory();
+                  historyBackupRef.current = snapshot;
+                  saveBackup(snapshot);
+                  setHistoryItems([]);
+                  historyClearCountRef.current += 1;
+                }}
+                className="h-7 px-2 rounded-md text-[11px] text-ink-300 hover:bg-ink-800 hover:text-ink-50 inline-flex items-center gap-1"
+              >
+                <X size={12} /> Clear
+              </button>
+              <button
+                onClick={() => {
+                  const restored = historyBackupRef.current?.length ? historyBackupRef.current : loadBackup() ?? makeDefaultHistory();
+                  setHistoryItems(restored);
+                  saveHistory(restored);
+                }}
+                className="h-7 px-2 rounded-md text-[11px] text-ink-300 hover:bg-ink-800 hover:text-ink-50 inline-flex items-center gap-1"
+              >
+                <RotateCcw size={12} /> Restore
+              </button>
+              <button
+                onClick={() => setHistoryOpen(false)}
+                className="h-7 w-7 grid place-items-center rounded-md text-ink-300 hover:bg-ink-800 hover:text-ink-50"
+                aria-label="Close history"
+              >
+                <X size={13} />
+              </button>
+            </div>
+          </div>
+          <div className="max-h-[320px] overflow-y-auto p-3 space-y-2">
+            {historyItems.length === 0 && (
+              <div className="text-xs text-ink-500 font-mono px-1 py-2">History cleared.</div>
+            )}
+            {historyItems.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-start gap-3 rounded-xl border border-ink-800 bg-ink-900/70 px-3 py-2"
+              >
+                <Clock3 size={13} className="mt-0.5 text-accent shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm text-ink-100 truncate">{item.query}</div>
+                  <div className="text-[10px] text-ink-500 font-mono">{new Date(item.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

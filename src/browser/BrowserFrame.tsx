@@ -9,6 +9,7 @@ import {
   Minus,
   Square,
   Shield,
+  History,
 } from 'lucide-react';
 import { useBrowser, useActiveEntry } from './store';
 import Favicon from './Favicon';
@@ -33,14 +34,27 @@ export default function BrowserFrame() {
   const entry = useActiveEntry();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
+  const [showHistoryMenu, setShowHistoryMenu] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const displayUrl = entry?.displayUrl ?? 'browse://';
-  const isSecure = entry?.host === 'wiki' || entry?.host === 'atlas' || entry?.host === 'home' || entry?.host === 'search';
+  const isSecure = entry?.host === 'wiki' || entry?.host === 'omen' || entry?.host === 'home' || entry?.host === 'search';
 
   useEffect(() => {
     if (editing && inputRef.current) inputRef.current.select();
   }, [editing]);
+
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      const target = e.target as Node | null;
+      if (!target) return;
+      if (!showHistoryMenu) return;
+      const root = document.getElementById('browser-frame-root');
+      if (root && !root.contains(target)) setShowHistoryMenu(false);
+    };
+    window.addEventListener('mousedown', onDown);
+    return () => window.removeEventListener('mousedown', onDown);
+  }, [showHistoryMenu]);
 
   const commit = () => {
     const v = draft.trim();
@@ -49,7 +63,7 @@ export default function BrowserFrame() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-ink-900 text-ink-100">
+    <div id="browser-frame-root" className="relative flex flex-col h-full bg-ink-900 text-ink-100">
       {/* Tab strip */}
       <div className="flex items-stretch h-10 bg-ink-950 pl-2 pr-1 select-none">
         <div className="flex items-center px-1">
@@ -100,6 +114,13 @@ export default function BrowserFrame() {
         </NavBtn>
         <NavBtn onClick={reload} label="Reload">
           <RotateCw size={15} className={active.loading ? 'animate-spin' : ''} />
+        </NavBtn>
+        <NavBtn
+          onClick={() => setShowHistoryMenu((v) => !v)}
+          label="History"
+          title="History"
+        >
+          <History size={15} />
         </NavBtn>
 
         <div
@@ -162,6 +183,49 @@ export default function BrowserFrame() {
         <div className={`h-full transition-opacity ${active.loading ? 'opacity-30' : 'opacity-100'}`}>
           <PageRouter />
         </div>
+        {showHistoryMenu && (
+          <div className="absolute left-3 top-3 z-30 w-[320px] max-w-[calc(100vw-1.5rem)] rounded-2xl border border-ink-700 bg-[#0c0c0f]/96 backdrop-blur-xl shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-ink-800 bg-ink-950/70">
+              <div className="flex items-center gap-2 text-sm text-ink-100 font-medium">
+                <History size={15} className="text-accent" />
+                History
+              </div>
+              <button
+                onClick={() => setShowHistoryMenu(false)}
+                className="h-7 w-7 grid place-items-center rounded-md text-ink-300 hover:bg-ink-800 hover:text-ink-50"
+                aria-label="Close history menu"
+              >
+                <X size={13} />
+              </button>
+            </div>
+            <div className="max-h-[280px] overflow-y-auto p-2 space-y-1">
+              {active.history.slice().reverse().map((item, index) => {
+                const isCurrent = index === 0;
+                return (
+                  <button
+                    key={`${item.ts}-${item.url}`}
+                    onClick={() => {
+                      if (item.url !== active.history[active.cursor]?.url) {
+                        void navigate(item.url);
+                      }
+                      setShowHistoryMenu(false);
+                    }}
+                    className={`w-full text-left rounded-xl px-3 py-2.5 border transition-colors ${
+                      isCurrent
+                        ? 'bg-ink-800 border-ink-700 text-ink-50'
+                        : 'bg-ink-900/60 border-ink-800 text-ink-200 hover:bg-ink-850'
+                    }`}
+                  >
+                    <div className="text-xs font-mono text-ink-500 mb-0.5">
+                      {isCurrent ? 'Current' : item.displayUrl}
+                    </div>
+                    <div className="text-sm truncate">{item.displayUrl || item.url}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -172,17 +236,20 @@ function NavBtn({
   onClick,
   disabled,
   label,
+  title,
 }: {
   children: React.ReactNode;
   onClick: () => void;
   disabled?: boolean;
   label: string;
+  title?: string;
 }) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
+      title={title}
       className={`h-8 w-8 grid place-items-center rounded-full ${
         disabled
           ? 'text-ink-600 cursor-default'

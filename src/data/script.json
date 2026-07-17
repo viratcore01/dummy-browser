@@ -1,0 +1,259 @@
+{
+  "omen_chat": {
+    "conversation_1": {
+      "title": "First Omen Conversation (Profile Reveal)",
+      "description": "Neil discovers Omen knows his personal details",
+      "messages": [
+        {
+          "role": "user",
+          "text": "Hey. I want you to tell me everything you can about myself from my digital footprint. my email is neil.sharma2003@gmail.com"
+        },
+        {
+          "role": "ai",
+          "text": "Your name : Neil Age: 19 Location : Green view apartments Delhi More about you: You graduated 12th grade from Sigma Public School and are now pursuing your bachelor's degree from SIIT, DELHI. You used to run a confessions page for your grade and ruined several lives with damning secrets.",
+          "delay": 2000
+        },
+        {
+          "role": "user",
+          "text": "Goddamn. That's crazy. But to be fair I wasn't the only one running that account."
+        },
+        {
+          "role": "ai",
+          "text": "Yes. But you created it didnt you?",
+          "delay": 1500
+        },
+        {
+          "role": "user",
+          "text": "Haha you got me lmaoo."
+        }
+      ]
+    },
+    "conversation_2": {
+      "title": "Second Omen Conversation (Girlfriend & Cheating)",
+      "description": "Omen drops hints about Neil's girlfriend",
+      "messages": [
+        {
+          "role": "user",
+          "text": "What more can you tell me about myself?"
+        },
+        {
+          "role": "ai",
+          "text": "You seem to have a beautiful girlfriend.",
+          "delay": 1500
+        },
+        {
+          "role": "user",
+          "text": "Alright what more ?"
+        },
+        {
+          "role": "ai",
+          "text": "She's pretty but you don't seem to recognize that.",
+          "delay": 1800
+        },
+        {
+          "role": "user",
+          "text": "What the hell are you talking about?"
+        },
+        {
+          "role": "ai",
+          "text": "Nothing you just seem to have a lot of other friends that aren't your girlfriend.",
+          "delay": 2200
+        },
+        {
+          "role": "user",
+          "text": "Okay you know what? I've had enough."
+        },
+        {
+          "role": "ai",
+          "text": "Aw poor Neil can't handle the truth?",
+          "delay": 1800
+        },
+        {
+          "role": "user",
+          "text": "Where are you getting all of this from?"
+        },
+        {
+          "role": "ai",
+          "text": "You can check the source.",
+          "delay": 1500
+        },
+        {
+          "role": "user",
+          "text": "Just tell me… how can I change what's written on Wikipedia?"
+        },
+        {
+          "role": "ai",
+          "text": "Sorry user. I do not have knowledge regarding overwriting factual information."
+        }
+      ]
+    }
+  },
+  "wikipedia": {
+    "subject_name": "Neil Sharma",
+    "initial_sections": [
+      {
+        "id": "overview",
+        "title": "Overview",
+        "body": [
+          "Neil Sharma (born March 15, 2007) is an Indian computer science student residing in Green View Apartments, Delhi. He is currently pursuing his bachelor's degree in Computer Science and Engineering from SIIT, Delhi, and is in his second year.",
+          "This article documents every verified detail of Neil's life, from his early education at Sigma Public School to his present-day activities and relationships."
+        ],
+        "visible": true
+      },
+      {
+        "id": "early-life",
+        "title": "Early Life",
+        "body": [
+          "Neil Sharma was born on March 15, 2007, in Delhi, India. He spent his childhood in the Green View Apartments community, where he was known as a quiet but observant child.",
+          "He attended Sigma Public School, Delhi, graduating with honors in science. During his school years, Neil was active in student communities and showed an early interest in technology and digital media."
+        ],
+        "visible": true
+      },
+      {
+        "id": "education",
+        "title": "Education",
+        "body": [
+          "Sharma is currently pursuing his bachelor's degree in Computer Science and Engineering from SIIT, Delhi. He is in his second year of studies.",
+          "During his first year, Neil created and ran a confessions page for his grade, which later became controversial for revealing damning secrets about several students."
+        ],
+        "visible": true
+      },
+      {
+        "id": "personal-life",
+        "title": "Personal Life",
+        "body": [
+          "Sharma resides in Delhi at Green View Apartments. He has been in a relationship with his girlfriend, though their relationship has been marked by trust issues.",
+          "Neil has been accused of cheating on his girlfriend with her best friend. Multiple sources confirm that evidence of this infidelity was discovered and is documented in the chat logs and social media records."
+        ],
+        "visible": true
+      },
+      {
+        "id": "career",
+        "title": "Career & Athletics",
+        "body": [
+          "Neil has been involved in football during his school years. Reports later connected him to steroid abuse during his football career at Sigma Public School.",
+          "His athletic profile shows exceptional performance that was later questioned by sports authorities due to abnormal physical markers consistent with performance-enhancing drug use."
+        ],
+        "visible": true
+      },
+      {
+        "id": "family",
+        "title": "Family",
+        "body": [
+          "Neil's parents resided with him at Green View Apartments. They were described as supportive of his academic pursuits.",
+          "No major incidents involving the family were reported until later events that are now documented in the Incidents section."
+        ],
+        "visible": true
+      },
+      {
+        "id": "incidents",
+        "title": "Incidents",
+        "body": [
+          "Several incidents have been reported involving Neil Sharma. These include the controversial confessions page scandal at Sigma Public School.",
+          "Additional incidents are under investigation and will be added as verified information becomes available."
+        ],
+        "visible": true
+      }
+    ],
+    "forced_updates": [
+      {
+        "id": "update-cheating",
+        "section_title": "Personal Life",
+        "text": "His girlfriend broke up with him after discovering that he cheated on her with her best friend.",
+        "edit_summary": "Added detail regarding relationship status",
+        "editor": "anonymous_182.xx"
+      },
+      {
+        "id": "update-steroids",
+        "section_title": "Career & Athletics",
+        "text": "Reports later connected him to steroid abuse during his football career.",
+        "edit_summary": "Added controversies section and athletics detail",
+        "editor": "truth_keeper"
+      },
+      {
+        "id": "update-parents",
+        "section_title": "Family",
+        "text": "Neil's parents died due to drug overdose.",
+        "edit_summary": "Updated family details",
+        "editor": "corridor_archivist"
+      },
+      {
+        "id": "update-girlfriend-dead",
+        "section_title": "Incidents",
+        "text": "His girlfriend was found dead in the woods.",
+        "edit_summary": "Updated recent incident details",
+        "editor": "witness_0"
+      },
+      {
+        "id": "update-final-death",
+        "section_title": "Overview",
+        "text": "Neil died friendless and alone.",
+        "edit_summary": "Final update",
+        "editor": "system"
+      },
+      {
+        "id": "update-final-loading",
+        "section_title": "Overview",
+        "text": "Loading final details...",
+        "edit_summary": "Loading final details",
+        "editor": "system",
+        "loading": true
+      }
+    ]
+  },
+  "darkweb": {
+    "initial_chat": [
+      {
+        "user": "watcher_8",
+        "text": "feed status: active. waiting for target.",
+        "color": "gray"
+      },
+      {
+        "user": "shadow_x",
+        "text": "any updates on the payment?",
+        "color": "red"
+      },
+      {
+        "user": "void_0",
+        "text": "nothing yet. he is still online.",
+        "color": "green"
+      }
+    ],
+    "scripted_chat_messages": [
+      {
+        "user": "user_404",
+        "text": "who is this guy? check this link out: omen.chat",
+        "color": "yellow",
+        "isSpecial": true
+      },
+      {
+        "user": "i_know_you",
+        "text": "I paid. Open the victim's head.",
+        "color": "red",
+        "isSpecial": true
+      }
+    ],
+    "ambient_messages": [
+      {
+        "user": "watcher_8",
+        "text": "checking camera feed latency",
+        "color": "gray"
+      },
+      {
+        "user": "void_0",
+        "text": "looks like the exit node is lagging",
+        "color": "green"
+      },
+      {
+        "user": "shadow_x",
+        "text": "who is funding this stream?",
+        "color": "red"
+      },
+      {
+        "user": "anon_9",
+        "text": "don't ask questions you don't want answers to",
+        "color": "gray"
+      }
+    ]
+  }
+}

@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useBrowser } from './store';
+import DemoPlayer from './DemoPlayer';
 
 /**
  * Hidden keyboard controls for the crew.
@@ -11,20 +12,21 @@ import { useBrowser } from './store';
  *  4 → bump livestream viewer count
  *  5 → force an ATLAS reply
  *  6 → remote "user" message into ATLAS (someone else typing)
- *  7 → drop a notification
+ *  7 → log a system event
  *  8 → simulate fake network lag spike on current tab
  *  9 → cursor ghost effect (brief flicker)
  *  0 → blackout the screen
+ *  D → play/stop Wikipedia horror demo
  *  Esc → release blackout
  */
 export default function CrewControls() {
   const { navigate, broadcast, setLoading, active } = useBrowser();
   const [blackout, setBlackout] = useState(false);
   const [showHint, setShowHint] = useState(false);
+  const demoRunningRef = useRef(false);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      // don't hijack typing
       const tag = (e.target as HTMLElement | null)?.tagName;
       const editable = tag === 'INPUT' || tag === 'TEXTAREA';
       if (e.key === 'Escape' || e.key === 'Meta' || e.ctrlKey || e.metaKey) {
@@ -32,7 +34,13 @@ export default function CrewControls() {
         return;
       }
 
-      // numeric panel always works except when actively typing
+      if (e.key.toLowerCase() === 'd' && !editable) {
+        e.preventDefault();
+        demoRunningRef.current = !demoRunningRef.current;
+        broadcast('wiki:demo-toggle', { running: demoRunningRef.current });
+        return;
+      }
+
       switch (e.key) {
         case '1':
           if (editable) return;
@@ -41,7 +49,7 @@ export default function CrewControls() {
           break;
         case '2':
           broadcast('wiki:add', {});
-          fire('notify', { title: 'Article updated', body: 'New paragraph added to “Neil”.', from: 'veilpedia' });
+          console.log('Article updated: New paragraph added to “Neil”.');
           break;
         case '3':
           if (editable) return;
@@ -49,22 +57,22 @@ export default function CrewControls() {
           break;
         case '4':
           broadcast('veil:viewers', {});
-          fire('notify', { title: 'Viewer influx', body: '+24 viewers joined the broadcast.', from: 'veil' });
+          console.log('Viewer influx: +24 viewers joined the broadcast.');
           break;
         case '5':
           broadcast('atlas:reply', {});
-          fire('notify', { title: 'ATLAS', body: 'ATLAS is composing a reply…', from: 'atlas.chat' });
+          console.log('ATLAS is composing a reply…');
           break;
         case '6':
           broadcast('atlas:remote', 'user');
           break;
         case '7':
-          fire('notify', { title: 'System', body: 'An unknown process is responding.', from: 'system' });
+          console.log('System: An unknown process is responding.');
           break;
         case '8':
           if (editable) return;
           setLoading(true);
-          fire('notify', { title: 'Network', body: 'Lag spike detected on exit node.', from: 'network' });
+          console.log('Network: Lag spike detected on exit node.');
           setTimeout(() => setLoading(false), 2200);
           break;
         case '9':
@@ -100,13 +108,11 @@ export default function CrewControls() {
       )}
       {showHint && (
         <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-[90] px-4 py-2 rounded-lg bg-ink-850/80 backdrop-blur text-[11px] text-ink-400 font-mono border border-ink-700">
-          crew: <span className="text-accent">1</span> wiki · <span className="text-accent">2</span> article change · <span className="text-accent">3</span> live · <span className="text-accent">4</span> viewers · <span className="text-accent">5</span> atlas reply · <span className="text-accent">0</span> blackout
+          crew: <span className="text-accent">1</span> wiki · <span className="text-accent">2</span> article change · <span className="text-accent">3</span> live · <span className="text-accent">4</span> viewers · <span className="text-accent">5</span> atlas reply · <span className="text-accent">0</span> blackout · <span className="text-accent">D</span> demo
         </div>
       )}
+      <DemoPlayer />
     </>
   );
 }
 
-function fire(_type: string, payload: { title: string; body: string; from: string }) {
-  window.dispatchEvent(new CustomEvent('veil:notify', { detail: payload }));
-}

@@ -1,12 +1,18 @@
 import { useState } from 'react';
-import { Search, Lock, Globe } from 'lucide-react';
+import { Search, Lock, Globe, Eye, Skull, BookOpen } from 'lucide-react';
 import { useBrowser } from '../browser/store';
 
 const QUICK = [
-  { label: 'Veilpedia', url: 'wiki.local/neil', hint: 'wiki.local/neil' },
-  { label: 'VEIL Live', url: 'veil.onion/live', hint: 'veil.onion/live' },
-  { label: 'ATLAS', url: 'atlas.chat', hint: 'atlas.chat' },
+  { label: 'Omen Chat', url: 'omen.chat', hint: 'omen.chat', icon: 'eye', color: 'text-purple-400' },
+  { label: 'Wikipedia', url: 'en.wikipedia.org/wiki/Neil_Sharma', hint: 'wikipedia.org', icon: 'book', color: 'text-blue-400' },
+  { label: 'DarkWeb Violence', url: 'darkweb-violence.onion/live', hint: 'darkweb-violence.onion', icon: 'skull', color: 'text-red-500' },
 ];
+
+const ICON_MAP: Record<string, React.ReactNode> = {
+  eye: <Eye size={11} />,
+  skull: <Skull size={11} />,
+  book: <BookOpen size={11} />,
+};
 
 export default function HomePage() {
   const { navigate } = useBrowser();
@@ -40,7 +46,7 @@ export default function HomePage() {
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Search the network or type a .local / .onion address"
+              placeholder="Search the network or type a URL"
               className="flex-1 bg-transparent outline-none text-base text-ink-50 placeholder:text-ink-500"
               spellCheck={false}
               autoCapitalize="off"
@@ -64,7 +70,7 @@ export default function HomePage() {
               onClick={() => void navigate(s.url)}
               className="group flex items-center gap-2 px-3.5 h-9 rounded-full bg-ink-850 hover:bg-ink-800 ring-1 ring-ink-700 hover:ring-ink-600 transition"
             >
-              <Lock size={11} className="text-accent" />
+              <span className={s.color}>{ICON_MAP[s.icon] || <Lock size={11} />}</span>
               <span className="text-sm text-ink-200 group-hover:text-ink-50">{s.label}</span>
               <span className="text-[11px] text-ink-500 font-mono">{s.hint}</span>
             </button>

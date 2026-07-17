@@ -3,9 +3,9 @@ import { useActiveHost } from './store';
 import HomePage from '../sites/HomePage';
 import ErrorPage from './ErrorPage';
 
-const Wiki = lazy(() => import('../sites/Wiki'));
-const Livestream = lazy(() => import('../sites/Livestream'));
-const Atlas = lazy(() => import('../sites/Atlas'));
+const WikipediaNeil = lazy(() => import('../sites/WikipediaNeil'));
+const DarkWebViolence = lazy(() => import('../sites/DarkWebViolence'));
+const OmenChat = lazy(() => import('../sites/OmenChat'));
 const Search = lazy(() => import('../sites/Search'));
 
 export default function PageRouter() {
@@ -19,21 +19,21 @@ export default function PageRouter() {
     case 'wiki':
       page = (
         <Suspense fallback={<Fallback />}>
-          <Wiki />
+          <WikipediaNeil />
         </Suspense>
       );
       break;
-    case 'veil':
+    case 'darkweb':
       page = (
         <Suspense fallback={<Fallback />}>
-          <Livestream />
+          <DarkWebViolence />
         </Suspense>
       );
       break;
-    case 'atlas':
+    case 'omen':
       page = (
         <Suspense fallback={<Fallback />}>
-          <Atlas />
+          <OmenChat />
         </Suspense>
       );
       break;

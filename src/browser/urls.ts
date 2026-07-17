@@ -1,17 +1,22 @@
 import type { Host, ParsedUrl } from './types';
 
 const KNOWN: Record<string, Host> = {
+  'wikipedia.org': 'wiki',
+  'en.wikipedia.org': 'wiki',
   'wiki.local': 'wiki',
-  'veil.onion': 'veil',
-  'atlas.chat': 'atlas',
+  'darkweb-violence.onion': 'darkweb',
+  'darkweb.onion': 'darkweb',
+  'violence.onion': 'darkweb',
+  'omen.chat': 'omen',
+  'omen.ai': 'omen',
   'browse.search': 'search',
 };
 
 export const HOST_TITLES: Record<Host, string> = {
   home: 'New Tab',
-  wiki: 'Veilpedia — Neil',
-  veil: 'VEIL // LIVE',
-  atlas: 'ATLAS',
+  wiki: 'Wikipedia — Neil Sharma',
+  darkweb: 'DarkWeb Violence',
+  omen: 'Omen - Chat',
   search: 'Browse',
   error: 'Page Unavailable',
 };
@@ -19,8 +24,8 @@ export const HOST_TITLES: Record<Host, string> = {
 export const HOST_FAVICONS: Record<Host, string> = {
   home: 'circle',
   wiki: 'book',
-  veil: 'radio',
-  atlas: 'sparkles',
+  darkweb: 'skull',
+  omen: 'cat',
   search: 'search',
   error: 'triangle-alert',
 };

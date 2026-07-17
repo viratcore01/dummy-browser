@@ -1,14 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { Maximize, Minimize } from 'lucide-react';
 import { BrowserProvider, useActiveHost } from './browser/store';
-import SystemBar, { NotificationStack } from './browser/SystemBar';
+import { ScriptProvider } from './browser/ScriptEngine';
+import SystemBar from './browser/SystemBar';
 import BrowserFrame from './browser/BrowserFrame';
-import CrewControls from './browser/CrewControls';
+import DirectorControls from './browser/DirectorControls';
 
 export default function App() {
   return (
     <BrowserProvider>
-      <AppShell />
+      <ScriptProvider>
+        <AppShell />
+      </ScriptProvider>
     </BrowserProvider>
   );
 }
@@ -17,11 +20,13 @@ function AppShell() {
   const [fullscreen, setFullscreen] = useState(false);
   const host = useActiveHost();
 
-  // subtle ambient tint per host for cinematic framing
+  // Subtle ambient tint per host
   const tint =
-    host === 'veil'
-      ? 'from-black via-ink-950 to-[#0a0608]'
-      : host === 'atlas'
+    host === 'darkweb'
+      ? 'from-black via-[#0a0305] to-[#0a0305]'
+      : host === 'omen'
+      ? 'from-black via-[#0a080f] to-[#0a080f]'
+      : host === 'wiki'
       ? 'from-ink-950 via-ink-950 to-[#080a0c]'
       : 'from-ink-950 via-ink-950 to-ink-950';
 
@@ -33,18 +38,14 @@ function AppShell() {
 
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'F11' && e.code !== 'F11') return;
-
       e.preventDefault();
-
       const toggle = async () => {
         if (document.fullscreenElement) {
           await document.exitFullscreen();
           return;
         }
-
         await rootRef.current?.requestFullscreen?.({ navigationUI: 'hide' });
       };
-
       void toggle();
     };
 
@@ -55,7 +56,6 @@ function AppShell() {
       window.removeEventListener('keydown', onKey);
     };
   }, []);
-
 
   return (
     <div
@@ -68,7 +68,6 @@ function AppShell() {
           <SystemBar />
           <div className="relative flex-1 min-h-0">
             <BrowserFrame />
-            <NotificationStack />
           </div>
         </div>
       )}
@@ -77,7 +76,6 @@ function AppShell() {
           <SystemBar />
           <div className="relative flex-1 min-h-0">
             <BrowserFrame />
-            <NotificationStack />
           </div>
         </div>
       )}
@@ -91,7 +89,8 @@ function AppShell() {
         {fullscreen ? <Minimize size={13} /> : <Maximize size={13} />}
       </button>
 
-      <CrewControls />
+      {/* Director Controls (replaces old CrewControls) */}
+      <DirectorControls />
     </div>
   );
 }
